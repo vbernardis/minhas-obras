@@ -26,85 +26,81 @@ function App() {
     // Estado para controlar qual aba está ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
-    // Função para carregar usuários do servidor
-  const carregarUsuarios = async () => {
-    try {
-      const resposta = await axios.get('http://localhost:3001/api/usuarios');
-      setUsuarios(resposta.data);
-    } catch (erro) {
-      console.error('Erro ao carregar usuários');
-    }
-  };
-
-  // Função para carregar obras do servidor
-  const carregarObras = async () => {
-    try {
-      const resposta = await axios.get('http://localhost:3001/api/obras');
-      setObras(resposta.data);
-    } catch (erro) {
-      console.error('Erro ao carregar obras');
-    }
-  };
-
-  // Função para cadastrar obra
-  const cadastrarObra = async (e) => {
-    e.preventDefault();
-    try {
-      const novaObra = {
-        nome: nomeObra,
-        endereco: enderecoObra,
-        proprietario: proprietarioObra,
-        responsavel: responsavelObra,
-        status: statusObra
-      };
-
-      await axios.post('http://localhost:3001/api/obras', novaObra);
-      carregarObras();
-
-      setNomeObra('');
-      setEnderecoObra('');
-      setProprietarioObra('');
-      setResponsavelObra('');
-      setStatusObra('planejamento');
-    } catch (erro) {
-      alert('Erro ao cadastrar obra');
-    }
-  };
-
-  // Carregar obras ao entrar no sistema
-  if (tela === 'sistema' && obras.length === 0) {
-    carregarObras();
+  // Função para carregar usuários do servidor
+const carregarUsuarios = async () => {
+  try {
+    const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/usuarios');
+    setUsuarios(resposta.data);
+  } catch (erro) {
+    console.error('Erro ao carregar usuários', erro);
   }
+};
 
-  // Função de cadastro
-  const cadastrar = async (e) => {
-    e.preventDefault();
-    setMensagem('');
-    try {
-      const resposta = await axios.post('http://localhost:3001/api/usuarios', { nome, email, senha });
-      setMensagem(resposta.data.mensagem);
-      setNome('');
-      setEmail('');
-      setSenha('');
-    } catch (erro) {
-      setMensagem(erro.response?.data?.erro || 'Erro de conexão');
-    }
-  };
+// Função para carregar obras do servidor
+const carregarObras = async () => {
+  try {
+    const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/obras');
+    setObras(resposta.data);
+  } catch (erro) {
+    console.error('Erro ao carregar obras', erro);
+  }
+};
 
-  // Função de login
-  const logar = async (e) => {
-    e.preventDefault();
-    setMensagem('');
-    try {
-      const resposta = await axios.post('http://localhost:3001/api/login', { email, senha });
-      setUsuarioLogado(resposta.data);
-      setTela('sistema');
-      setEmail('');
-      setSenha('');
-    } catch (erro) {
-      setMensagem(erro.response?.data?.erro || 'Erro de conexão');
-    }
-  };
+// Função para cadastrar obra
+const cadastrarObra = async (e) => {
+  e.preventDefault();
+  try {
+    const novaObra = {
+      nome: nomeObra,
+      endereco: enderecoObra,
+      proprietario: proprietarioObra,
+      responsavel: responsavelObra,
+      status: statusObra
+    };
+
+    await axios.post('https://minhas-obras-backend.onrender.com/api/obras', novaObra);
+    carregarObras();
+
+    setNomeObra('');
+    setEnderecoObra('');
+    setProprietarioObra('');
+    setResponsavelObra('');
+    setStatusObra('planejamento');
+  } catch (erro) {
+    alert('Erro ao cadastrar obra');
+    console.error(erro);
+  }
+};
+
+// Função de cadastro
+const cadastrar = async (e) => {
+  e.preventDefault();
+  setMensagem('');
+  try {
+    const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/usuarios', { nome, email, senha });
+    setMensagem(resposta.data.mensagem);
+    setNome('');
+    setEmail('');
+    setSenha('');
+  } catch (erro) {
+    setMensagem(erro.response?.data?.erro || 'Erro de conexão');
+  }
+};
+
+// Função de login
+const logar = async (e) => {
+  e.preventDefault();
+  setMensagem('');
+  try {
+    const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/login', { email, senha });
+    setUsuarioLogado(resposta.data);
+    setTela('sistema');
+    setEmail('');
+    setSenha('');
+  } catch (erro) {
+    setMensagem(erro.response?.data?.erro || 'Erro de conexão');
+  }
+};
 
   // Função de logout
   const sair = () => {
