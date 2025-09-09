@@ -20,87 +20,87 @@ function App() {
   const [responsavelObra, setResponsavelObra] = useState('');
   const [statusObra, setStatusObra] = useState('planejamento');
 
-    // Estado para usuários
+  // Estado para usuários
   const [usuarios, setUsuarios] = useState([]);
 
-    // Estado para controlar qual aba está ativa
+  // Estado para controlar qual aba está ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
   // Função para carregar usuários do servidor
-const carregarUsuarios = async () => {
-  try {
-    const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/usuarios');
-    setUsuarios(resposta.data);
-  } catch (erro) {
-    console.error('Erro ao carregar usuários', erro);
-  }
-};
+  const carregarUsuarios = async () => {
+    try {
+      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/usuarios');
+      setUsuarios(resposta.data);
+    } catch (erro) {
+      console.error('Erro ao carregar usuários', erro);
+    }
+  };
 
-// Função para carregar obras do servidor
-const carregarObras = async () => {
-  try {
-    const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/obras');
-    setObras(resposta.data);
-  } catch (erro) {
-    console.error('Erro ao carregar obras', erro);
-  }
-};
+  // Função para carregar obras do servidor
+  const carregarObras = async () => {
+    try {
+      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/obras');
+      setObras(resposta.data);
+    } catch (erro) {
+      console.error('Erro ao carregar obras', erro);
+    }
+  };
 
-// Função para cadastrar obra
-const cadastrarObra = async (e) => {
-  e.preventDefault();
-  try {
-    const novaObra = {
-      nome: nomeObra,
-      endereco: enderecoObra,
-      proprietario: proprietarioObra,
-      responsavel: responsavelObra,
-      status: statusObra
-    };
+  // Função para cadastrar obra
+  const cadastrarObra = async (e) => {
+    e.preventDefault();
+    try {
+      const novaObra = {
+        nome: nomeObra,
+        endereco: enderecoObra,
+        proprietario: proprietarioObra,
+        responsavel: responsavelObra,
+        status: statusObra
+      };
 
-    await axios.post('https://minhas-obras-backend.onrender.com/api/obras', novaObra);
-    carregarObras();
+      await axios.post('https://minhas-obras-backend.onrender.com/api/obras', novaObra);
+      carregarObras();
 
-    setNomeObra('');
-    setEnderecoObra('');
-    setProprietarioObra('');
-    setResponsavelObra('');
-    setStatusObra('planejamento');
-  } catch (erro) {
-    alert('Erro ao cadastrar obra');
-    console.error(erro);
-  }
-};
+      setNomeObra('');
+      setEnderecoObra('');
+      setProprietarioObra('');
+      setResponsavelObra('');
+      setStatusObra('planejamento');
+    } catch (erro) {
+      alert('Erro ao cadastrar obra');
+      console.error(erro);
+    }
+  };
 
-// Função de cadastro
-const cadastrar = async (e) => {
-  e.preventDefault();
-  setMensagem('');
-  try {
-    const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/usuarios', { nome, email, senha });
-    setMensagem(resposta.data.mensagem);
-    setNome('');
-    setEmail('');
-    setSenha('');
-  } catch (erro) {
-    setMensagem(erro.response?.data?.erro || 'Erro de conexão');
-  }
-};
+  // Função de cadastro
+  const cadastrar = async (e) => {
+    e.preventDefault();
+    setMensagem('');
+    try {
+      const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/usuarios', { nome, email, senha });
+      setMensagem(resposta.data.mensagem);
+      setNome('');
+      setEmail('');
+      setSenha('');
+    } catch (erro) {
+      setMensagem(erro.response?.data?.erro || 'Erro de conexão');
+    }
+  };
 
-// Função de login
-const logar = async (e) => {
-  e.preventDefault();
-  setMensagem('');
-  try {
-    const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/login', { email, senha });
-    setUsuarioLogado(resposta.data);
-    setTela('sistema');
-    setEmail('');
-    setSenha('');
-  } catch (erro) {
-    setMensagem(erro.response?.data?.erro || 'Erro de conexão');
-  }
-};
+  // Função de login
+  const logar = async (e) => {
+    e.preventDefault();
+    setMensagem('');
+    try {
+      const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/login', { email, senha });
+      setUsuarioLogado(resposta.data);
+      setTela('sistema');
+      setEmail('');
+      setSenha('');
+    } catch (erro) {
+      setMensagem(erro.response?.data?.erro || 'Erro de conexão');
+    }
+  };
 
   // Função de logout
   const sair = () => {
@@ -197,74 +197,135 @@ const logar = async (e) => {
           </header>
 
           <nav>
-            <button>Dashboard</button>
-            <button>Obras</button>
-            <button>Usuários</button>
-            <button>Orçamentos</button>
+            <button onClick={() => setAbaAtiva('dashboard')}>Dashboard</button>
+            <button onClick={() => setAbaAtiva('obras')}>Obras</button>
+            <button onClick={() => {
+              setAbaAtiva('usuarios');
+              carregarUsuarios();
+            }}>Usuários</button>
+            <button onClick={() => setAbaAtiva('orcamentos')}>Orçamentos</button>
           </nav>
 
           <main>
-            <h2>🏗️ Obras</h2>
+            {abaAtiva === 'dashboard' && (
+              <div>
+                <h2>📊 Dashboard</h2>
+                <p>Bem-vindo ao painel principal, {usuarioLogado?.nome}!</p>
+              </div>
+            )}
 
-            <div className="card">
-              <h3>Cadastrar Nova Obra</h3>
-              <form onSubmit={cadastrarObra}>
-                <input
-                  placeholder="Nome da obra"
-                  value={nomeObra}
-                  onChange={(e) => setNomeObra(e.target.value)}
-                  required
-                />
-                <input
-                  placeholder="Endereço"
-                  value={enderecoObra}
-                  onChange={(e) => setEnderecoObra(e.target.value)}
-                  required
-                />
-                <input
-                  placeholder="Proprietário (opcional)"
-                  value={proprietarioObra}
-                  onChange={(e) => setProprietarioObra(e.target.value)}
-                />
-                <input
-                  placeholder="Responsável (opcional)"
-                  value={responsavelObra}
-                  onChange={(e) => setResponsavelObra(e.target.value)}
-                />
-                <select
-                  value={statusObra}
-                  onChange={(e) => setStatusObra(e.target.value)}
-                >
-                  <option value="planejamento">Planejamento</option>
-                  <option value="em_andamento">Em Andamento</option>
-                  <option value="pausada">Pausada</option>
-                  <option value="concluida">Concluída</option>
-                </select>
-                <button type="submit">Cadastrar Obra</button>
-              </form>
-            </div>
+            {abaAtiva === 'obras' && (
+              <div>
+                <h2>🏗️ Obras</h2>
 
-            <div className="card">
-              <h3>Obras Cadastradas ({obras.length})</h3>
-              {obras.length === 0 ? (
-                <p>Nenhuma obra cadastrada ainda.</p>
-              ) : (
-                <ul className="lista-obras">
-                  {obras.map(obra => (
-                    <li key={obra.id}>
-                      <strong>{obra.nome}</strong><br/>
-                      <small>{obra.endereco}</small><br/>
-                      <span className={`badge status-${obra.status}`}>
-                        {obra.status === 'planejamento' && 'Planejamento'}
-                        {obra.status === 'em_andamento' && 'Em Andamento'}
-                        {obra.status === 'pausada' && 'Pausada'}
-                        {obra.status === 'concluida' && 'Concluída'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                <div className="card">
+                  <h3>Cadastrar Nova Obra</h3>
+                  <form onSubmit={cadastrarObra}>
+                    <input
+                      placeholder="Nome da obra"
+                      value={nomeObra}
+                      onChange={(e) => setNomeObra(e.target.value)}
+                      required
+                    />
+                    <input
+                      placeholder="Endereço"
+                      value={enderecoObra}
+                      onChange={(e) => setEnderecoObra(e.target.value)}
+                      required
+                    />
+                    <input
+                      placeholder="Proprietário (opcional)"
+                      value={proprietarioObra}
+                      onChange={(e) => setProprietarioObra(e.target.value)}
+                    />
+                    <input
+                      placeholder="Responsável (opcional)"
+                      value={responsavelObra}
+                      onChange={(e) => setResponsavelObra(e.target.value)}
+                    />
+                    <select
+                      value={statusObra}
+                      onChange={(e) => setStatusObra(e.target.value)}
+                    >
+                      <option value="planejamento">Planejamento</option>
+                      <option value="em_andamento">Em Andamento</option>
+                      <option value="pausada">Pausada</option>
+                      <option value="concluida">Concluída</option>
+                    </select>
+                    <button type="submit">Cadastrar Obra</button>
+                  </form>
+                </div>
+
+                <div className="card">
+                  <h3>Obras Cadastradas ({obras.length})</h3>
+                  {obras.length === 0 ? (
+                    <p>Nenhuma obra cadastrada ainda.</p>
+                  ) : (
+                    <ul className="lista-obras">
+                      {obras.map(obra => (
+                        <li key={obra.id}>
+                          <strong>{obra.nome}</strong><br/>
+                          <small>{obra.endereco}</small><br/>
+                          <span className={`badge status-${obra.status}`}>
+                            {obra.status === 'planejamento' && 'Planejamento'}
+                            {obra.status === 'em_andamento' && 'Em Andamento'}
+                            {obra.status === 'pausada' && 'Pausada'}
+                            {obra.status === 'concluida' && 'Concluída'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {abaAtiva === 'usuarios' && (
+              <div className="card">
+                <h2>👥 Usuários Cadastrados ({usuarios.length})</h2>
+                {usuarios.length === 0 ? (
+                  <p>Nenhum usuário encontrado.</p>
+                ) : (
+                  <table className="tabela-usuarios">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usuarios.map(usuario => (
+                        <tr key={usuario.id}>
+                          <td>{usuario.nome}</td>
+                          <td>{usuario.email}</td>
+                          <td>
+                            <span className={`badge tipo-${usuario.tipo}`}>
+                              {usuario.tipo === 'admin' ? 'Admin' : 
+                               usuario.tipo === 'engenheiro' ? 'Engenheiro' : 
+                               usuario.tipo === 'gestor' ? 'Gestor' : 'Usuário'}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge status-${usuario.ativo}`}>
+                              {usuario.ativo ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {abaAtiva === 'orcamentos' && (
+              <div>
+                <h2>🧮 Orçamentos</h2>
+                <p>Em breve: cadastro de orçamentos com itens, valores e importação de Excel.</p>
+              </div>
+            )}
           </main>
         </div>
       )}
@@ -273,3 +334,4 @@ const logar = async (e) => {
 }
 
 export default App;
+corrige URL do backend: remove espaços e conecta rotas
