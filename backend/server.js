@@ -131,7 +131,7 @@ app.post('/api/obras', async (req, res) => {
 });
 
 // Inicia o servidor
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
