@@ -29,7 +29,7 @@ function App() {
     // Função para carregar usuários do servidor
   const carregarUsuarios = async () => {
     try {
-      const resposta = await axios.get('http://localhost:3001/api/usuarios');
+      const resposta = await axios.get('https://minhas-obras-backend.onrender.com');
       setUsuarios(resposta.data);
     } catch (erro) {
       console.error('Erro ao carregar usuários');
@@ -39,7 +39,7 @@ function App() {
   // Função para carregar obras do servidor
   const carregarObras = async () => {
     try {
-      const resposta = await axios.get('http://localhost:3001/api/obras');
+      const resposta = await axios.get('https://minhas-obras-backend.onrender.com');
       setObras(resposta.data);
     } catch (erro) {
       console.error('Erro ao carregar obras');
@@ -58,7 +58,7 @@ function App() {
         status: statusObra
       };
 
-      await axios.post('http://localhost:3001/api/obras', novaObra);
+      await axios.post('https://minhas-obras-backend.onrender.com', novaObra);
       carregarObras();
 
       setNomeObra('');
@@ -81,7 +81,7 @@ function App() {
     e.preventDefault();
     setMensagem('');
     try {
-      const resposta = await axios.post('http://localhost:3001/api/usuarios', { nome, email, senha });
+      const resposta = await axios.post('https://minhas-obras-backend.onrender.com', { nome, email, senha });
       setMensagem(resposta.data.mensagem);
       setNome('');
       setEmail('');
@@ -96,7 +96,7 @@ function App() {
     e.preventDefault();
     setMensagem('');
     try {
-      const resposta = await axios.post('http://localhost:3001/api/login', { email, senha });
+      const resposta = await axios.post('https://minhas-obras-backend.onrender.com', { email, senha });
       setUsuarioLogado(resposta.data);
       setTela('sistema');
       setEmail('');
