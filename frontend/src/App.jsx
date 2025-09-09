@@ -334,4 +334,4 @@ function App() {
 }
 
 export default App;
-corrige URL do backend: remove espaços e conecta rotas
+
