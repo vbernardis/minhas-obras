@@ -1,3 +1,6 @@
+app.get('/teste', (req, res) => {
+  res.json({ mensagem: 'Servidor funcionando!' });
+});
 // server.js
 
 const express = require('express');
