@@ -1,0 +1,146 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+.App {
+  max-width: 800px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* GERAL */
+.mensagem {
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #dcfce7;
+  color: #059669;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* TELA DE LOGIN E CADASTRO */
+.tela-login, .tela-cadastro {
+  max-width: 500px;
+  margin: 60px auto;
+  padding: 30px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.tela-login h1, .tela-cadastro h1 {
+  color: #1e3a8a;
+}
+
+.tela-login button, .tela-cadastro button {
+  width: 100%;
+  padding: 12px;
+  background-color: #1e3a8a;
+  color: white;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.link {
+  background: none;
+  color: #1e3a8a;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 14px;
+}
+
+/* TELA DO SISTEMA */
+.tela-sistema header {
+  background: white;
+  padding: 20px 30px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tela-sistema header h1 {
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.usuario-logado {
+  font-size: 16px;
+}
+
+.btn-sair {
+  background-color: #dc2626;
+  color: white;
+  padding: 6px 12px;
+  margin-left: 15px;
+  font-size: 14px;
+}
+
+nav {
+  background: white;
+  padding: 15px 30px;
+  display: flex;
+  gap: 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+nav button {
+  background: #e2e8f0;
+  color: #334155;
+  padding: 10px 16px;
+}
+
+nav button:hover {
+  background: #cbd5e1;
+}
+
+main {
+  padding: 30px;
+  background: #f8fafc;
+}
+
+main h2 {
+  color: #1e3a8a;
+  margin-bottom: 15px;
+}
+
+main p {
+  color: #64748b;
+  line-height: 1.6;
+}
