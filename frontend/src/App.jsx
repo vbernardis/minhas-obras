@@ -27,34 +27,35 @@ function App() {
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [locais, setLocais] = useState([
     {
-    nome: '',
-    etapas: [
-      {
-        nome: '',
-        subEtapas: [
-          {
-            nome: '',
-            servicos: [
-              {
-                descricao: '',
-                unidade: '',
-                quantidade: 1,
-                valorUnitarioMaterial: 0,
-                valorUnitarioMaoDeObra: 0,
-                bdiMaterial: 40,
-                bdiMaoDeObra: 80
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]);
+      nome: '',
+      etapas: [
+        {
+          nome: '',
+          subEtapas: [
+            {
+              nome: '',
+              servicos: [
+                {
+                  descricao: '',
+                  unidade: '',
+                  quantidade: 1,
+                  valorUnitarioMaterial: 0,
+                  valorUnitarioMaoDeObra: 0,
+                  bdiMaterial: 40,
+                  bdiMaoDeObra: 80
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]);
+
   // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
-  // Carregar obras ao entrar no sistema
+  // Carregar dados ao entrar no sistema
   useEffect(() => {
     if (tela === 'sistema') {
       carregarObras();
@@ -94,7 +95,13 @@ function App() {
   const cadastrarObra = async (e) => {
     e.preventDefault();
     try {
-      const novaObra = { nome: nomeObra, endereco: enderecoObra, proprietario: proprietarioObra, responsavel: responsavelObra, status: statusObra };
+      const novaObra = {
+        nome: nomeObra,
+        endereco: enderecoObra,
+        proprietario: proprietarioObra,
+        responsavel: responsavelObra,
+        status: statusObra
+      };
       await axios.post('https://minhas-obras-backend.onrender.com/api/obras', novaObra);
       carregarObras();
       setNomeObra('');
@@ -145,29 +152,77 @@ function App() {
 
   // Funções para orçamentos
   const adicionarLocal = () => {
-    setLocais([...locais, { nome: '', etapas: [] }]);
+    setLocais([...locais, {
+      nome: '',
+      etapas: []
+    }]);
   };
 
   const adicionarEtapa = (index) => {
     const novos = [...locais];
-    novos[index].etapas.push({ nome: '', subEtapas: [] });
+    novos[index].etapas.push({
+      nome: '',
+      subEtapas: []
+    });
     setLocais(novos);
   };
 
   const adicionarSubEtapa = (idxLocal, idxEtapa) => {
     const novos = [...locais];
-    novos[idxLocal].etapas[idxEtapa].subEtapas.push({ nome: '', servicos: [] });
+    novos[idxLocal].etapas[idxEtapa].subEtapas.push({
+      nome: '',
+      servicos: []
+    });
     setLocais(novos);
   };
 
   const adicionarServico = (idxLocal, idxEtapa, idxSub) => {
     const novos = [...locais];
     novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos.push({
-      descricao: '', unidade: '', quantidade: 1,
-      valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0,
-      bdiMaterial: 40, bdiMaoDeObra: 80
+      descricao: '',
+      unidade: '',
+      quantidade: 1,
+      valorUnitarioMaterial: 0,
+      valorUnitarioMaoDeObra: 0,
+      bdiMaterial: 40,
+      bdiMaoDeObra: 80
     });
     setLocais(novos);
+  };
+
+  const removerServico = (idxLocal, idxEtapa, idxSub, idxServico) => {
+    const novos = [...locais];
+    novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos =
+      novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos.filter((_, i) => i !== idxServico);
+    setLocais(novos);
+  };
+
+  const atualizarServico = (idxLocal, idxEtapa, idxSub, idxServico, campo, valor) => {
+    const novos = [...locais];
+    novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico][campo] = valor;
+    setLocais(novos);
+  };
+
+  const calcularTotalItem = (servico) => {
+    const totalMat = servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100);
+    const totalMO = servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100);
+    return (totalMat + totalMO).toFixed(2);
+  };
+
+  const calcularTotalOrcamento = () => {
+    let total = 0;
+    locais.forEach(local => {
+      local.etapas.forEach(etapa => {
+        etapa.subEtapas.forEach(subEtapa => {
+          subEtapa.servicos.forEach(servico => {
+            const totalMat = servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100);
+            const totalMO = servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100);
+            total += totalMat + totalMO;
+          });
+        });
+      });
+    });
+    return total.toFixed(2);
   };
 
   const cadastrarOrcamento = async (e) => {
@@ -175,13 +230,43 @@ function App() {
     const obraId = obras[0]?.id || 1;
 
     try {
-      const orcamento = { obraId, nome: nomeOrcamento, locais };
+      const orcamento = {
+        obraId,
+        nome: nomeOrcamento,
+        locais
+      };
+
       await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamento);
-      carregarOrcamentos[];
-      setNomeOrcamento[''];
-      setLocais[[{ nome: '', etapas: [{ nome: '', subEtapas: [{ nome: '', servicos: [{ descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }] }] }] });
-    } catch [erro] {
-      alert['Erro ao cadastrar orçamento'];
+      carregarOrcamentos();
+      setNomeOrcamento('');
+      setLocais([
+        {
+          nome: '',
+          etapas: [
+            {
+              nome: '',
+              subEtapas: [
+                {
+                  nome: '',
+                  servicos: [
+                    {
+                      descricao: '',
+                      unidade: '',
+                      quantidade: 1,
+                      valorUnitarioMaterial: 0,
+                      valorUnitarioMaoDeObra: 0,
+                      bdiMaterial: 40,
+                      bdiMaoDeObra: 80
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]);
+    } catch (erro) {
+      alert('Erro ao cadastrar orçamento');
     }
   };
 
@@ -193,11 +278,27 @@ function App() {
           <h1>Minhas Obras</h1>
           <h2>🔐 Entrar no Sistema</h2>
           <form onSubmit={logar}>
-            <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+            <input
+              placeholder="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
             <button type="submit">Entrar</button>
           </form>
-          <p><button onClick={() => setTela('cadastro')} className="link">Criar uma conta</button></p>
+          <p>
+            <button onClick={() => setTela('cadastro')} className="link">
+              Criar uma conta
+            </button>
+          </p>
           {mensagem && <p className="mensagem">{mensagem}</p>}
         </div>
       )}
@@ -208,12 +309,34 @@ function App() {
           <h1>Minhas Obras</h1>
           <h2>📝 Criar Conta</h2>
           <form onSubmit={cadastrar}>
-            <input placeholder="Nome completo" type="text" value={nome} onChange={(e) => setNome(e.target.value)} required />
-            <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+            <input
+              placeholder="Nome completo"
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
             <button type="submit">Cadastrar</button>
           </form>
-          <p><button onClick={() => setTela('login')} className="link">Já tem conta? Entrar</button></p>
+          <p>
+            <button onClick={() => setTela('login')} className="link">
+              Já tem conta? Entrar
+            </button>
+          </p>
           {mensagem && <p className="mensagem">{mensagem}</p>}
         </div>
       )}
@@ -244,7 +367,10 @@ function App() {
 
           <main>
             {abaAtiva === 'dashboard' && (
-              <div><h2>📊 Dashboard</h2><p>Bem-vindo ao painel principal, {usuarioLogado?.nome}!</p></div>
+              <div>
+                <h2>📊 Dashboard</h2>
+                <p>Bem-vindo ao painel principal, {usuarioLogado?.nome}!</p>
+              </div>
             )}
 
             {abaAtiva === 'obras' && (
@@ -253,11 +379,32 @@ function App() {
                 <div className="card">
                   <h3>Cadastrar Nova Obra</h3>
                   <form onSubmit={cadastrarObra}>
-                    <input placeholder="Nome da obra" value={nomeObra} onChange={(e) => setNomeObra(e.target.value)} required />
-                    <input placeholder="Endereço" value={enderecoObra} onChange={(e) => setEnderecoObra(e.target.value)} required />
-                    <input placeholder="Proprietário (opcional)" value={proprietarioObra} onChange={(e) => setProprietarioObra(e.target.value)} />
-                    <input placeholder="Responsável (opcional)" value={responsavelObra} onChange={(e) => setResponsavelObra(e.target.value)} />
-                    <select value={statusObra} onChange={(e) => setStatusObra(e.target.value)}>
+                    <input
+                      placeholder="Nome da obra"
+                      value={nomeObra}
+                      onChange={(e) => setNomeObra(e.target.value)}
+                      required
+                    />
+                    <input
+                      placeholder="Endereço"
+                      value={enderecoObra}
+                      onChange={(e) => setEnderecoObra(e.target.value)}
+                      required
+                    />
+                    <input
+                      placeholder="Proprietário (opcional)"
+                      value={proprietarioObra}
+                      onChange={(e) => setProprietarioObra(e.target.value)}
+                    />
+                    <input
+                      placeholder="Responsável (opcional)"
+                      value={responsavelObra}
+                      onChange={(e) => setResponsavelObra(e.target.value)}
+                    />
+                    <select
+                      value={statusObra}
+                      onChange={(e) => setStatusObra(e.target.value)}
+                    >
                       <option value="planejamento">Planejamento</option>
                       <option value="em_andamento">Em Andamento</option>
                       <option value="pausada">Pausada</option>
@@ -402,57 +549,28 @@ function App() {
                                     <th>Valor MO (unit)</th>
                                     <th>BDI MO</th>
                                     <th>Total</th>
+                                    <th>Ação</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {subEtapa.servicos.map((servico, idxServico) => {
-                                    const total = (
-                                      servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100) +
-                                      servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100)
-                                    ).toFixed(2);
-
-                                    return (
-                                      <tr key={idxServico}>
-                                        <td>{`${idxLocal+1}.${idxEtapa+1}.${idxSub+1}.${idxServico+1}`}</td>
-                                        <td><input type="text" value={servico.descricao} onChange={(e) => {
-                                          const novos = [...locais];
-                                          novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico].descricao = e.target.value;
-                                          setLocais(novos);
-                                        }} /></td>
-                                        <td><input type="text" value={servico.unidade} onChange={(e) => {
-                                          const novos = [...locais];
-                                          novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico].unidade = e.target.value;
-                                          setLocais(novos);
-                                        }} /></td>
-                                        <td><input type="number" value={servico.quantidade} onChange={(e) => {
-                                          const novos = [...locais];
-                                          novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico].quantidade = parseFloat(e.target.value) || 0;
-                                          setLocais(novos);
-                                        }} /></td>
-                                        <td><input type="number" value={servico.valorUnitarioMaterial} onChange={(e) => {
-                                          const novos = [...locais];
-                                          novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico].valorUnitarioMaterial = parseFloat(e.target.value) || 0;
-                                          setLocais(novos);
-                                        }} /></td>
-                                        <td><input type="number" value={servico.bdiMaterial} onChange={(e) => {
-                                          const novos = [...locais];
-                                          novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico].bdiMaterial = parseFloat(e.target.value) || 0;
-                                          setLocais(novos);
-                                        }} />%</td>
-                                        <td><input type="number" value={servico.valorUnitarioMaoDeObra} onChange={(e) => {
-                                          const novos = [...locais];
-                                          novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico].valorUnitarioMaoDeObra = parseFloat(e.target.value) || 0;
-                                          setLocais(novos);
-                                        }} /></td>
-                                        <td><input type="number" value={servico.bdiMaoDeObra} onChange={(e) => {
-                                          const novos = [...locais];
-                                          novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico].bdiMaoDeObra = parseFloat(e.target.value) || 0;
-                                          setLocais(novos);
-                                        }} />%</td>
-                                        <td>{total}</td>
-                                      </tr>
-                                    );
-                                  })}
+                                  {subEtapa.servicos.map((servico, idxServico) => (
+                                    <tr key={idxServico}>
+                                      <td>{`${idxLocal+1}.${idxEtapa+1}.${idxSub+1}.${idxServico+1}`}</td>
+                                      <td><input type="text" value={servico.descricao} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'descricao', e.target.value)} /></td>
+                                      <td><input type="text" value={servico.unidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'unidade', e.target.value)} /></td>
+                                      <td><input type="number" value={servico.quantidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'quantidade', parseFloat(e.target.value) || 0)} /></td>
+                                      <td><input type="number" value={servico.valorUnitarioMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)} /></td>
+                                      <td><input type="number" value={servico.bdiMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaterial', parseFloat(e.target.value) || 0)} />%</td>
+                                      <td><input type="number" value={servico.valorUnitarioMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)} /></td>
+                                      <td><input type="number" value={servico.bdiMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaoDeObra', parseFloat(e.target.value) || 0)} />%</td>
+                                      <td>{calcularTotalItem(servico)}</td>
+                                      <td>
+                                        <button type="button" onClick={() => removerServico(idxLocal, idxEtapa, idxSub, idxServico)} style={{ background: '#e53e3e' }}>
+                                          X
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
                                 </tbody>
                               </table>
                             </div>
@@ -463,6 +581,9 @@ function App() {
                   ))}
 
                   <button type="button" onClick={adicionarLocal}>+ Adicionar Local</button>
+                  <div style={{ marginTop: '10px', fontWeight: 'bold' }}>
+                    Total do Orçamento: R$ {calcularTotalOrcamento()}
+                  </div>
                   <button type="submit">Cadastrar Orçamento</button>
                 </form>
               </div>
