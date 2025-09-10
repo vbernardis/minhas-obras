@@ -24,6 +24,7 @@ function App() {
 
   // Estado para orçamentos
   const [orcamentos, setOrcamentos] = useState([]);
+  const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [locais, setLocais] = useState([
     {
@@ -158,9 +159,9 @@ function App() {
     }]);
   };
 
-  const adicionarEtapa = (index) => {
+  const adicionarEtapa = (idxLocal) => {
     const novos = [...locais];
-    novos[index].etapas.push({
+    novos[idxLocal].etapas.push({
       nome: '',
       subEtapas: []
     });
@@ -227,11 +228,15 @@ function App() {
 
   const cadastrarOrcamento = async (e) => {
     e.preventDefault();
-    const obraId = obras[0]?.id || 1;
+
+    if (!obraSelecionada) {
+      alert('Selecione uma obra para vincular o orçamento.');
+      return;
+    }
 
     try {
       const orcamento = {
-        obraId,
+        obraId: parseInt(obraSelecionada),
         nome: nomeOrcamento,
         locais
       };
@@ -239,6 +244,7 @@ function App() {
       await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamento);
       carregarOrcamentos();
       setNomeOrcamento('');
+      setObraSelecionada('');
       setLocais([
         {
           nome: '',
@@ -482,16 +488,34 @@ function App() {
               <div className="card">
                 <h2>🧮 Novo Orçamento</h2>
                 <form onSubmit={cadastrarOrcamento}>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label>Obra:</label>
+                    <select
+                      value={obraSelecionada}
+                      onChange={(e) => setObraSelecionada(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                    >
+                      <option value="">Selecione uma obra</option>
+                      {obras.map(obra => (
+                        <option key={obra.id} value={obra.id}>
+                          {obra.nome} - {obra.endereco}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <input
                     placeholder="Nome do orçamento"
                     value={nomeOrcamento}
                     onChange={(e) => setNomeOrcamento(e.target.value)}
                     required
+                    style={{ width: '100%', padding: '8px', marginBottom: '15px' }}
                   />
 
                   {locais.map((local, idxLocal) => (
-                    <div key={idxLocal} className="local">
-                      <h3>
+                    <div key={idxLocal} className="local" style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', marginBottom: '15px' }}>
+                      <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>
                         <input
                           placeholder="Local (ex: Torre A)"
                           value={local.nome}
@@ -501,13 +525,16 @@ function App() {
                             setLocais(novos);
                           }}
                           required
+                          style={{ width: '70%', padding: '6px' }}
                         />
-                        <button type="button" onClick={() => adicionarEtapa(idxLocal)}>+ Etapa</button>
+                        <button type="button" onClick={() => adicionarEtapa(idxLocal)} style={{ marginLeft: '10px', padding: '5px 10px' }}>
+                          + Etapa
+                        </button>
                       </h3>
 
                       {local.etapas.map((etapa, idxEtapa) => (
-                        <div key={idxEtapa} className="etapa">
-                          <h4>
+                        <div key={idxEtapa} className="etapa" style={{ marginLeft: '20px', borderLeft: '2px solid #3498db', paddingLeft: '15px', paddingTop: '10px' }}>
+                          <h4 style={{ margin: '0 0 10px 0', color: '#3498db' }}>
                             <input
                               placeholder="Etapa (ex: Fundações)"
                               value={etapa.nome}
@@ -517,13 +544,16 @@ function App() {
                                 setLocais(novos);
                               }}
                               required
+                              style={{ width: '70%', padding: '6px' }}
                             />
-                            <button type="button" onClick={() => adicionarSubEtapa(idxLocal, idxEtapa)}>+ Sub Etapa</button>
+                            <button type="button" onClick={() => adicionarSubEtapa(idxLocal, idxEtapa)} style={{ marginLeft: '10px', padding: '5px 10px' }}>
+                              + Sub Etapa
+                            </button>
                           </h4>
 
                           {etapa.subEtapas.map((subEtapa, idxSub) => (
-                            <div key={idxSub} className="sub-etapa">
-                              <h5>
+                            <div key={idxSub} className="sub-etapa" style={{ marginLeft: '20px', borderLeft: '2px dashed #e67e22', paddingLeft: '15px', paddingTop: '10px' }}>
+                              <h5 style={{ margin: '0 0 10px 0', color: '#e67e22' }}>
                                 <input
                                   placeholder="Sub Etapa (ex: Armadura)"
                                   value={subEtapa.nome}
@@ -533,39 +563,42 @@ function App() {
                                     setLocais(novos);
                                   }}
                                   required
+                                  style={{ width: '70%', padding: '6px' }}
                                 />
-                                <button type="button" onClick={() => adicionarServico(idxLocal, idxEtapa, idxSub)}>+ Serviço</button>
+                                <button type="button" onClick={() => adicionarServico(idxLocal, idxEtapa, idxSub)} style={{ marginLeft: '10px', padding: '5px 10px' }}>
+                                  + Serviço
+                                </button>
                               </h5>
 
-                              <table className="tabela-servicos">
+                              <table className="tabela-servicos" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
                                 <thead>
-                                  <tr>
-                                    <th>Código</th>
-                                    <th>Descrição</th>
-                                    <th>Unidade</th>
-                                    <th>Quantidade</th>
-                                    <th>Valor Mat. (unit)</th>
-                                    <th>BDI Mat.</th>
-                                    <th>Valor MO (unit)</th>
-                                    <th>BDI MO</th>
-                                    <th>Total</th>
-                                    <th>Ação</th>
+                                  <tr style={{ backgroundColor: '#f8f9fa' }}>
+                                    <th style={{ padding: '8px', textAlign: 'left', width: '80px' }}>Código</th>
+                                    <th style={{ padding: '8px', textAlign: 'left' }}>Descrição</th>
+                                    <th style={{ padding: '8px', width: '80px' }}>Unid.</th>
+                                    <th style={{ padding: '8px', width: '80px' }}>Qtd</th>
+                                    <th style={{ padding: '8px', width: '100px' }}>Vl. Mat. Unit</th>
+                                    <th style={{ padding: '8px', width: '80px' }}>BDI Mat.</th>
+                                    <th style={{ padding: '8px', width: '100px' }}>Vl. MO Unit</th>
+                                    <th style={{ padding: '8px', width: '80px' }}>BDI MO</th>
+                                    <th style={{ padding: '8px', width: '100px' }}>Total</th>
+                                    <th style={{ padding: '8px', width: '60px' }}>Ação</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {subEtapa.servicos.map((servico, idxServico) => (
                                     <tr key={idxServico}>
-                                      <td>{`${idxLocal+1}.${idxEtapa+1}.${idxSub+1}.${idxServico+1}`}</td>
-                                      <td><input type="text" value={servico.descricao} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'descricao', e.target.value)} /></td>
-                                      <td><input type="text" value={servico.unidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'unidade', e.target.value)} /></td>
-                                      <td><input type="number" value={servico.quantidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'quantidade', parseFloat(e.target.value) || 0)} /></td>
-                                      <td><input type="number" value={servico.valorUnitarioMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)} /></td>
-                                      <td><input type="number" value={servico.bdiMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaterial', parseFloat(e.target.value) || 0)} />%</td>
-                                      <td><input type="number" value={servico.valorUnitarioMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)} /></td>
-                                      <td><input type="number" value={servico.bdiMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaoDeObra', parseFloat(e.target.value) || 0)} />%</td>
-                                      <td>{calcularTotalItem(servico)}</td>
-                                      <td>
-                                        <button type="button" onClick={() => removerServico(idxLocal, idxEtapa, idxSub, idxServico)} style={{ background: '#e53e3e' }}>
+                                      <td style={{ padding: '6px' }}>{`${idxLocal+1}.${idxEtapa+1}.${idxSub+1}.${idxServico+1}`}</td>
+                                      <td style={{ padding: '6px' }}><input type="text" value={servico.descricao} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'descricao', e.target.value)} style={{ width: '100%' }} /></td>
+                                      <td style={{ padding: '6px' }}><input type="text" value={servico.unidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'unidade', e.target.value)} style={{ width: '100%' }} /></td>
+                                      <td style={{ padding: '6px' }}><input type="number" value={servico.quantidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'quantidade', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} /></td>
+                                      <td style={{ padding: '6px' }}><input type="number" value={servico.valorUnitarioMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} /></td>
+                                      <td style={{ padding: '6px' }}><input type="number" value={servico.bdiMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaterial', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} />%</td>
+                                      <td style={{ padding: '6px' }}><input type="number" value={servico.valorUnitarioMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} /></td>
+                                      <td style={{ padding: '6px' }}><input type="number" value={servico.bdiMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaoDeObra', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} />%</td>
+                                      <td style={{ padding: '6px', fontWeight: 'bold' }}>{calcularTotalItem(servico)}</td>
+                                      <td style={{ padding: '6px' }}>
+                                        <button type="button" onClick={() => removerServico(idxLocal, idxEtapa, idxSub, idxServico)} style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '4px 6px', cursor: 'pointer' }}>
                                           X
                                         </button>
                                       </td>
@@ -580,11 +613,15 @@ function App() {
                     </div>
                   ))}
 
-                  <button type="button" onClick={adicionarLocal}>+ Adicionar Local</button>
-                  <div style={{ marginTop: '10px', fontWeight: 'bold' }}>
+                  <button type="button" onClick={adicionarLocal} style={{ marginBottom: '15px' }}>+ Adicionar Local</button>
+
+                  <div style={{ marginTop: '15px', fontWeight: 'bold', fontSize: '1.1em', color: '#2c3e50' }}>
                     Total do Orçamento: R$ {calcularTotalOrcamento()}
                   </div>
-                  <button type="submit">Cadastrar Orçamento</button>
+
+                  <button type="submit" style={{ marginTop: '15px', padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', border: 'none', cursor: 'pointer' }}>
+                    Cadastrar Orçamento
+                  </button>
                 </form>
               </div>
             )}
