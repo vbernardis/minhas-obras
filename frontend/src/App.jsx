@@ -26,7 +26,7 @@ function App() {
   const [orcamentos, setOrcamentos] = useState([]);
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [locais, setLocais] = useState([
-  {
+    {
     nome: '',
     etapas: [
       {
