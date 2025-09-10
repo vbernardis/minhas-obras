@@ -1,6 +1,3 @@
-app.get('/teste', (req, res) => {
-  res.json({ mensagem: 'Servidor funcionando!' });
-});
 // server.js
 
 const express = require('express');
@@ -18,6 +15,27 @@ app.use(express.json());
 // Rota de teste
 app.get('/teste', (req, res) => {
   res.json({ mensagem: 'Servidor funcionando!' });
+});
+
+// Rota: Listar todos os usuários
+app.get('/api/usuarios', async (req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        tipo: true,
+        ativo: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(usuarios);
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao buscar usuários' });
+    console.error(erro);
+  }
 });
 
 // Rota: Cadastro de usuário
@@ -129,6 +147,51 @@ app.post('/api/obras', async (req, res) => {
     res.json(obra);
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao cadastrar obra' });
+    console.error(erro);
+  }
+});
+
+// Rota: Listar orçamentos
+app.get('/api/orcamentos', async (req, res) => {
+  try {
+    const orcamentos = await prisma.orcamento.findMany({
+      include: { itens: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(orcamentos);
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao buscar orçamentos' });
+  }
+});
+
+// Rota: Cadastrar orçamento
+app.post('/api/orcamentos', async (req, res) => {
+  const { obraId, nome, itens } = req.body;
+
+  if (!obraId || !nome || !itens || itens.length === 0) {
+    return res.status(400).json({ erro: 'Preencha todos os dados' });
+  }
+
+  try {
+    const orcamento = await prisma.orcamento.create({
+      data: {
+        nome,
+        obraId,
+        valorTotal: itens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0),
+        itens: {
+          create: itens.map(item => ({
+            descricao: item.descricao,
+            quantidade: item.quantidade,
+            valorUnitario: item.valorUnitario,
+            valorTotal: item.quantidade * item.valorUnitario
+          }))
+        }
+      },
+      include: { itens: true }
+    });
+    res.json(orcamento);
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao cadastrar orçamento' });
     console.error(erro);
   }
 });
