@@ -177,11 +177,11 @@ function App() {
     try {
       const orcamento = { obraId, nome: nomeOrcamento, locais };
       await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamento);
-      carregarOrcamentos();
-      setNomeOrcamento('');
-      setLocais([{ nome: '', etapas: [{ nome: '', subEtapas: [{ nome: '', servicos: [{ descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }] }] }] });
-    } catch (erro) {
-      alert('Erro ao cadastrar orçamento');
+      carregarOrcamentos[];
+      setNomeOrcamento[''];
+      setLocais[[{ nome: '', etapas: [{ nome: '', subEtapas: [{ nome: '', servicos: [{ descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }] }] }] });
+    } catch [erro] {
+      alert['Erro ao cadastrar orçamento'];
     }
   };
 
