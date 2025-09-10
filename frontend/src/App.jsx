@@ -26,8 +26,31 @@ function App() {
   const [orcamentos, setOrcamentos] = useState([]);
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [locais, setLocais] = useState([
-    { nome: '', etapas: [{ nome: '', subEtapas: [{ nome: '', servicos: [{ descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }] }] }] 
-  ]);
+  { 
+    nome: '', 
+    etapas: [
+      { 
+        nome: '', 
+        subEtapas: [
+          { 
+            nome: '', 
+            servicos: [
+              { 
+                descricao: '', 
+                unidade: '', 
+                quantidade: 1, 
+                valorUnitarioMaterial: 0, 
+                valorUnitarioMaoDeObra: 0, 
+                bdiMaterial: 40, 
+                bdiMaoDeObra: 80 
+              }
+            ] 
+          }
+        ] 
+      }
+    ] 
+  }
+]);
 
   // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
