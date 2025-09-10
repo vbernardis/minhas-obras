@@ -1,4 +1,4 @@
-// server.js
+// backend/server.js
 
 const express = require('express');
 const cors = require('cors');
@@ -8,7 +8,6 @@ const { PrismaClient } = require('@prisma/client');
 const app = express();
 const prisma = new PrismaClient();
 
-// Permite que o frontend se comunique
 app.use(cors());
 app.use(express.json());
 
@@ -47,18 +46,14 @@ app.post('/api/usuarios', async (req, res) => {
   }
 
   try {
-    const usuarioExistente = await prisma.usuario.findUnique({
-      where: { email }
-    });
-
+    const usuarioExistente = await prisma.usuario.findUnique({ where: { email } });
     if (usuarioExistente) {
       return res.status(400).json({ erro: 'Este email já está cadastrado' });
     }
 
     const senhaHash = await bcrypt.hash(senha, 10);
-
     const usuario = await prisma.usuario.create({
-      data: {
+       {
         nome,
         email,
         senha: senhaHash
@@ -87,18 +82,11 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    const usuario = await prisma.usuario.findUnique({
-      where: { email }
-    });
-
-    if (!usuario) {
-      return res.status(400).json({ erro: 'Email ou senha inválidos' });
-    }
+    const usuario = await prisma.usuario.findUnique({ where: { email } });
+    if (!usuario) return res.status(400).json({ erro: 'Email ou senha inválidos' });
 
     const senhaValida = await bcrypt.compare(senha, usuario.senha);
-    if (!senhaValida) {
-      return res.status(400).json({ erro: 'Email ou senha inválidos' });
-    }
+    if (!senhaValida) return res.status(400).json({ erro: 'Email ou senha inválidos' });
 
     res.json({
       id: usuario.id,
@@ -116,9 +104,7 @@ app.post('/api/login', async (req, res) => {
 // Rota: Listar todas as obras
 app.get('/api/obras', async (req, res) => {
   try {
-    const obras = await prisma.obra.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
+    const obras = await prisma.obra.findMany({ orderBy: { createdAt: 'desc' } });
     res.json(obras);
   } catch (erro) {
     res.status(500).json({ erro: 'Erro ao buscar obras' });
@@ -126,7 +112,7 @@ app.get('/api/obras', async (req, res) => {
   }
 });
 
-// Rota: Cadastrar uma nova obra
+// Rota: Cadastrar obra
 app.post('/api/obras', async (req, res) => {
   const { nome, endereco, proprietario, responsavel, status } = req.body;
 
@@ -155,8 +141,22 @@ app.post('/api/obras', async (req, res) => {
 app.get('/api/orcamentos', async (req, res) => {
   try {
     const orcamentos = await prisma.orcamento.findMany({
-      include: { itens: true },
-      orderBy: { createdAt: 'desc' }
+      include: {
+        obra: true,
+        locais: {
+          include: {
+            etapas: {
+              include: {
+                subEtapas: {
+                  include: {
+                    servicos: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     });
     res.json(orcamentos);
   } catch (erro) {
@@ -166,28 +166,60 @@ app.get('/api/orcamentos', async (req, res) => {
 
 // Rota: Cadastrar orçamento
 app.post('/api/orcamentos', async (req, res) => {
-  const { obraId, nome, itens } = req.body;
+  const { obraId, nome, locais } = req.body;
 
-  if (!obraId || !nome || !itens || itens.length === 0) {
+  if (!obraId || !nome || !locais || locais.length === 0) {
     return res.status(400).json({ erro: 'Preencha todos os dados' });
   }
 
   try {
     const orcamento = await prisma.orcamento.create({
-      data: {
+       {
         nome,
         obraId,
-        valorTotal: itens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0),
-        itens: {
-          create: itens.map(item => ({
-            descricao: item.descricao,
-            quantidade: item.quantidade,
-            valorUnitario: item.valorUnitario,
-            valorTotal: item.quantidade * item.valorUnitario
+        locais: {
+          create: locais.map(local => ({
+            nome: local.nome,
+            etapas: {
+              create: local.etapas.map(etapa => ({
+                nome: etapa.nome,
+                subEtapas: {
+                  create: etapa.subEtapas.map(subEtapa => ({
+                    nome: subEtapa.nome,
+                    servicos: {
+                      create: subEtapa.servicos.map(servico => ({
+                        descricao: servico.descricao,
+                        unidade: servico.unidade,
+                        quantidade: servico.quantidade,
+                        valorUnitarioMaterial: servico.valorUnitarioMaterial,
+                        valorUnitarioMaoDeObra: servico.valorUnitarioMaoDeObra,
+                        bdiMaterial: servico.bdiMaterial || 40,
+                        bdiMaoDeObra: servico.bdiMaoDeObra || 80,
+                        valorTotal: calcularValorTotal(servico)
+                      }))
+                    }
+                  }))
+                }
+              }))
+            }
           }))
         }
       },
-      include: { itens: true }
+      include: {
+        locais: {
+          include: {
+            etapas: {
+              include: {
+                subEtapas: {
+                  include: {
+                    servicos: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     });
     res.json(orcamento);
   } catch (erro) {
@@ -195,6 +227,13 @@ app.post('/api/orcamentos', async (req, res) => {
     console.error(erro);
   }
 });
+
+// Função auxiliar para calcular valor total
+function calcularValorTotal(servico) {
+  const totalMaterial = servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100);
+  const totalMaoDeObra = servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100);
+  return totalMaterial + totalMaoDeObra;
+}
 
 // Inicia o servidor
 const PORT = process.env.PORT || 3001;
