@@ -33,7 +33,7 @@ function App() {
   const [bdiMaoDeObraGlobal, setBdiMaoDeObraGlobal] = useState(80);
   const [admObras, setAdmObras] = useState(15);
 
-  // ID sequencial para novos itens
+  // ID sequencial
   const proximoId = () => Math.max(...itens.map(i => i.id), 0) + 1;
 
   // Estado para aba ativa
@@ -141,10 +141,11 @@ function App() {
 
     switch (nivel) {
       case 'local':
-        codigo = `${Math.max(...itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0), 0) + 1}`;
+        const locais = itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0);
+        codigo = `${Math.max(...locais, 0) + 1}`;
         break;
       case 'etapa':
-        codigo = '01.01'; // Será ajustado depois
+        codigo = '01.01';
         break;
       case 'subEtapa':
         codigo = '01.01.01';
@@ -156,7 +157,17 @@ function App() {
         codigo = '';
     }
 
-    setItens([...itens, { id, nivel, codigo, descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, total: 0 }]);
+    setItens([...itens, {
+      id,
+      nivel,
+      codigo,
+      descricao: '',
+      unidade: '',
+      quantidade: 1,
+      valorUnitarioMaterial: 0,
+      valorUnitarioMaoDeObra: 0,
+      total: 0
+    }]);
   };
 
   const removerItem = (id) => {
@@ -178,7 +189,7 @@ function App() {
     const resultado = [...itens].sort((a, b) => a.id - b.id);
     const map = new Map(resultado.map(item => [item.id, { ...item, total: 0 }]));
 
-    // Atualiza totais dos serviços
+    // Atualiza serviços
     for (let item of resultado) {
       if (item.nivel === 'servico') {
         const total = calcularTotalItem(item);
@@ -186,7 +197,7 @@ function App() {
       }
     }
 
-    // Soma para níveis superiores
+    // Soma hierárquica
     for (let item of resultado) {
       if (item.nivel === 'local' || item.nivel === 'etapa' || item.nivel === 'subEtapa') {
         let soma = 0;
@@ -194,9 +205,9 @@ function App() {
         for (let seguido of resultado) {
           if (seguido.id === item.id) found = true;
           else if (found) {
-            if (seguido.nivel === 'local') break;
+            if (seguido.nivel === 'local' && item.nivel === 'local') break;
             if (seguido.nivel === 'etapa' && item.nivel === 'local') continue;
-            if (seguido.nivel === 'subEtapa' && (item.nivel === 'local' || item.nivel === 'etapa')) continue;
+            if ((seguido.nivel === 'subEtapa' || seguido.nivel === 'etapa') && item.nivel === 'local') continue;
             soma += map.get(seguido.id)?.total || 0;
           }
         }
@@ -226,16 +237,44 @@ function App() {
     }
 
     try {
-      const orcamento = {
+      const orcamentoFormatado = {
         obraId: parseInt(obraSelecionada),
         nome: nomeOrcamento,
-        itens: itensComTotais,
         bdiMaterialGlobal,
         bdiMaoDeObraGlobal,
-        admObras
+        admObras,
+        locais: []
       };
 
-      await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamento);
+      // Monta estrutura hierárquica para o backend
+      let localAtual = null;
+      let etapaAtual = null;
+      let subEtapaAtual = null;
+
+      for (const item of itensComTotais) {
+        if (item.nivel === 'local') {
+          localAtual = { nome: item.descricao, etapas: [] };
+          orcamentoFormatado.locais.push(localAtual);
+        } else if (item.nivel === 'etapa' && localAtual) {
+          etapaAtual = { nome: item.descricao, subEtapas: [] };
+          localAtual.etapas.push(etapaAtual);
+        } else if (item.nivel === 'subEtapa' && etapaAtual) {
+          subEtapaAtual = { nome: item.descricao, servicos: [] };
+          etapaAtual.subEtapas.push(subEtapaAtual);
+        } else if (item.nivel === 'servico' && subEtapaAtual) {
+          subEtapaAtual.servicos.push({
+            descricao: item.descricao,
+            unidade: item.unidade,
+            quantidade: item.quantidade,
+            valorUnitarioMaterial: item.valorUnitarioMaterial,
+            valorUnitarioMaoDeObra: item.valorUnitarioMaoDeObra,
+            bdiMaterial: bdiMaterialGlobal,
+            bdiMaoDeObra: bdiMaoDeObraGlobal
+          });
+        }
+      }
+
+      await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamentoFormatado);
       carregarOrcamentos();
       setNomeOrcamento('');
       setObraSelecionada('');
@@ -243,9 +282,10 @@ function App() {
       setBdiMaterialGlobal(40);
       setBdiMaoDeObraGlobal(80);
       setAdmObras(15);
+      setMensagem('Orçamento cadastrado com sucesso!');
     } catch (erro) {
       console.error('Erro ao cadastrar orçamento', erro);
-      alert('Erro ao cadastrar orçamento: ' + (erro.response?.data?.erro || 'Verifique o console'));
+      alert('Erro ao salvar: ' + (erro.response?.data?.erro || 'Verifique o console'));
     }
   };
 
@@ -459,7 +499,7 @@ function App() {
 
             {abaAtiva === 'orcamentos' && (
               <div className="card">
-                <h2>🧮 Orçamento - Formato Planilha</h2>
+                <h2>🧮 Orçamento - Planilha</h2>
                 <form onSubmit={cadastrarOrcamento}>
                   <div style={{ marginBottom: '15px' }}>
                     <label>Obra:</label>
@@ -467,7 +507,7 @@ function App() {
                       value={obraSelecionada}
                       onChange={(e) => setObraSelecionada(e.target.value)}
                       required
-                      style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                      style={{ width: '100%', padding: '6px', marginTop: '5px' }}
                     >
                       <option value="">Selecione uma obra</option>
                       {obras.map(obra => (
@@ -483,43 +523,50 @@ function App() {
                     value={nomeOrcamento}
                     onChange={(e) => setNomeOrcamento(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '8px', marginBottom: '15px' }}
+                    style={{ width: '100%', padding: '6px', marginBottom: '10px' }}
                   />
 
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center' }}>
-                    <div>
-                      <label>BDI Material (%): </label>
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => adicionarItem('local')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Local</button>
+                    <button type="button" onClick={() => adicionarItem('etapa')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Etapa</button>
+                    <button type="button" onClick={() => adicionarItem('subEtapa')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Sub Etapa</button>
+                    <button type="button" onClick={() => adicionarItem('servico')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Serviço</button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '14px' }}>
+                      <label>BDI Mat. (%): </label>
                       <input
                         type="number"
                         value={bdiMaterialGlobal}
                         onChange={(e) => setBdiMaterialGlobal(parseFloat(e.target.value) || 0)}
-                        style={{ width: '80px', padding: '6px' }}
+                        style={{ width: '70px', padding: '4px' }}
                       />%
                     </div>
-                    <div>
+                    <div style={{ fontSize: '14px' }}>
                       <label>BDI MO (%): </label>
                       <input
                         type="number"
                         value={bdiMaoDeObraGlobal}
                         onChange={(e) => setBdiMaoDeObraGlobal(parseFloat(e.target.value) || 0)}
-                        style={{ width: '80px', padding: '6px' }}
+                        style={{ width: '70px', padding: '4px' }}
                       />%
                     </div>
                   </div>
 
-                  <div style={{ maxHeight: '500px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '6px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
-                          <th style={{ padding: '8px', width: '70px' }}>Nível</th>
-                          <th style={{ padding: '8px', width: '90px' }}>Código</th>
-                          <th style={{ padding: '8px' }}>Descrição</th>
-                          <th style={{ padding: '8px', width: '80px' }}>Unid.</th>
-                          <th style={{ padding: '8px', width: '90px' }}>Qtd</th>
-                          <th style={{ padding: '8px', width: '110px' }}>Vl. Mat. Unit</th>
-                          <th style={{ padding: '8px', width: '110px' }}>Vl. MO Unit</th>
-                          <th style={{ padding: '8px', width: '110px' }}>Total</th>
-                          <th style={{ padding: '8px', width: '60px' }}>Ação</th>
+                          <th style={{ padding: '6px', width: '70px' }}>Nível</th>
+                          <th style={{ padding: '6px', width: '90px' }}>Código</th>
+                          <th style={{ padding: '6px' }}>Descrição</th>
+                          <th style={{ padding: '6px', width: '70px' }}>Unid.</th>
+                          <th style={{ padding: '6px', width: '80px' }}>Qtd</th>
+                          <th style={{ padding: '6px', width: '100px' }}>Vl. Mat. Unit</th>
+                          <th style={{ padding: '6px', width: '100px' }}>Vl. MO Unit</th>
+                          <th style={{ padding: '6px', width: '100px' }}>Total</th>
+                          <th style={{ padding: '6px', width: '50px' }}>Ação</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -530,84 +577,72 @@ function App() {
                               item.nivel === 'etapa' ? '#f5fff0' :
                               item.nivel === 'subEtapa' ? '#fffaf0' : 'white'
                           }}>
-                            <td style={{ padding: '6px' }}>
-                              <select
-                                value=""
-                                onChange={(e) => adicionarItem(e.target.value)}
-                                style={{ width: '100%' }}
-                              >
-                                <option value="">+ Adicionar</option>
-                                <option value="local">+ Local</option>
-                                <option value="etapa">+ Etapa</option>
-                                <option value="subEtapa">+ Sub Etapa</option>
-                                <option value="servico">+ Serviço</option>
-                              </select>
-                            </td>
-                            <td style={{ padding: '6px' }}>
+                            <td style={{ padding: '4px', fontWeight: 'bold' }}>{item.nivel.charAt(0).toUpperCase() + item.nivel.slice(1)}</td>
+                            <td style={{ padding: '4px' }}>
                               <input
                                 type="text"
                                 value={item.codigo}
                                 onChange={(e) => atualizarItem(item.id, 'codigo', e.target.value)}
-                                style={{ width: '100%', fontWeight: 'bold' }}
+                                style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                 readOnly={item.nivel !== 'servico'}
                               />
                             </td>
-                            <td style={{ padding: '6px' }}>
+                            <td style={{ padding: '4px' }}>
                               <input
                                 type="text"
                                 value={item.descricao}
                                 onChange={(e) => atualizarItem(item.id, 'descricao', e.target.value)}
-                                style={{ width: '100%' }}
+                                style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                               />
                             </td>
                             {item.nivel === 'servico' ? (
                               <>
-                                <td style={{ padding: '6px' }}>
+                                <td style={{ padding: '4px' }}>
                                   <input
                                     type="text"
                                     value={item.unidade}
                                     onChange={(e) => atualizarItem(item.id, 'unidade', e.target.value)}
-                                    style={{ width: '100%' }}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
-                                <td style={{ padding: '6px' }}>
+                                <td style={{ padding: '4px' }}>
                                   <input
                                     type="number"
                                     value={item.quantidade}
                                     onChange={(e) => atualizarItem(item.id, 'quantidade', parseFloat(e.target.value) || 0)}
-                                    style={{ width: '100%' }}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
-                                <td style={{ padding: '6px' }}>
+                                <td style={{ padding: '4px' }}>
                                   <input
                                     type="number"
                                     value={item.valorUnitarioMaterial}
                                     onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
-                                    style={{ width: '100%' }}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
-                                <td style={{ padding: '6px' }}>
+                                <td style={{ padding: '4px' }}>
                                   <input
                                     type="number"
                                     value={item.valorUnitarioMaoDeObra}
                                     onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
-                                    style={{ width: '100%' }}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
-                                <td style={{ padding: '6px', fontWeight: 'bold', color: '#27ae60' }}>
+                                <td style={{ padding: '4px', fontWeight: 'bold', color: '#27ae60' }}>
                                   R$ {calcularTotalItem(item).toFixed(2)}
                                 </td>
                               </>
                             ) : (
-                              <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50' }}>
+                              <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50', padding: '4px' }}>
                                 Total: R$ {item.total.toFixed(2)}
                               </td>
                             )}
-                            <td style={{ padding: '6px' }}>
+                            <td style={{ padding: '4px' }}>
                               <button
                                 type="button"
                                 onClick={() => removerItem(item.id)}
-                                style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '4px 6px', cursor: 'pointer' }}
+                                style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '2px 4px', fontSize: '12px', cursor: 'pointer' }}
                               >
                                 X
                               </button>
@@ -618,19 +653,19 @@ function App() {
                     </table>
                   </div>
 
-                  <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
+                  <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ fontSize: '14px' }}>
                       <label>ADM de Obras (%): </label>
                       <input
                         type="number"
                         value={admObras}
                         onChange={(e) => setAdmObras(parseFloat(e.target.value) || 0)}
-                        style={{ width: '80px', padding: '6px' }}
+                        style={{ width: '70px', padding: '4px' }}
                       />%
                     </div>
-                    <div style={{ textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', fontSize: '14px' }}>
                       <div>Subtotal: R$ {calcularSubtotal().toFixed(2)}</div>
-                      <div style={{ fontWeight: 'bold', fontSize: '1.2em', color: '#2c3e50' }}>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
                         Total Final: R$ {calcularTotalFinal().toFixed(2)}
                       </div>
                     </div>
@@ -639,12 +674,13 @@ function App() {
                   <button
                     type="submit"
                     style={{
-                      marginTop: '20px',
-                      padding: '12px 24px',
+                      marginTop: '15px',
+                      padding: '10px 20px',
                       backgroundColor: '#27ae60',
                       color: 'white',
                       border: 'none',
                       fontWeight: 'bold',
+                      fontSize: '16px',
                       cursor: 'pointer'
                     }}
                   >
