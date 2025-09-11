@@ -22,8 +22,8 @@ function App() {
   // Estados para usuários
   const [usuarios, setUsuarios] = useState([]);
 
-  // Estado para orçamentosos
-  const [orcamentosos, setOrcamentosos] = useState([]);
+  // Estado para orçamentos
+  const [orcamentos, setOrcamentos] = useState([]);
   const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [itens, setItens] = useState([
@@ -36,15 +36,15 @@ function App() {
   // ID sequencial
   const proximoId = () => Math.max(...itens.map(i => i.id), 0) + 1;
 
-  // Estado para aba ativa
-  const [abaAtiva, setAba Ativa] = useState('dashboard');
+  // Estado para aba ativa (sem espaços!)
+  const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
   // Carregar dados ao entrar no sistema
   useEffect(() => {
     if (tela === 'sistema') {
       carregarObras();
       carregarUsuarios();
-      carregarOrcamentosos();
+      carregarOrcamentos();
     }
   }, [tela]);
 
@@ -66,12 +66,12 @@ function App() {
     }
   };
 
-  const carregarOrcamentosos = async () => {
+  const carregarOrcamentos = async () => {
     try {
-      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/orcamentosos');
-      setOrcamentosos(resposta.data);
+      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/orcamentos');
+      setOrcamentos(resposta.data);
     } catch (erro) {
-      console.error('Erro ao carregar orçamentosos');
+      console.error('Erro ao carregar orçamentos');
     }
   };
 
@@ -83,7 +83,7 @@ function App() {
         nome: nomeObra,
         endereco: enderecoObra,
         proprietario: proprietarioObra,
-        Responsavel: ResponsavelObra,
+        responsavel: responsavelObra,
         status: statusObra
       };
       await axios.post('https://minhas-obras-backend.onrender.com/api/obras', novaObra);
@@ -134,14 +134,14 @@ function App() {
     setTela('login');
   };
 
-  // Funções para orçamentosos
+  // Funções para orçamentos
   const adicionarItem = (nivel) => {
     const id = proximoId();
     let codigo = '';
 
     switch (nivel) {
       case 'local':
-        const locais = Itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0);
+        const locais = itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0);
         codigo = `${Math.max(...locais, 0) + 1}`;
         break;
       case 'etapa':
@@ -157,7 +157,7 @@ function App() {
         codigo = '';
     }
 
-    set Itens([...Itens, {
+    setItens([...itens, {
       id,
       nivel,
       codigo,
@@ -169,12 +169,12 @@ function App() {
     }]);
   };
 
-  const RemoverItem = (id) => {
-    set Itens(itens.filter(item => item.id !== id));
+  const removerItem = (id) => {
+    setItens(itens.filter(item => item.id !== id));
   };
 
   const atualizarItem = (id, campo, valor) => {
-    set Itens(itens.map(item => item.id === id ? { ...item, [campo]: valor } : item));
+    setItens(itens.map(item => item.id === id ? { ...item, [campo]: valor } : item));
   };
 
   const calcularTotalItem = (item) => {
@@ -217,10 +217,10 @@ function App() {
     return Array.from(map.values());
   };
 
-  const ItensComTotais = calcularHierarquia();
+  const itensComTotais = calcularHierarquia();
 
   const calcularSubtotal = () => {
-    return ItensComTotais.reduce((acc, item) => acc + (item.nivel === 'local' ? item.total : 0), 0);
+    return itensComTotais.reduce((acc, item) => acc + (item.nivel === 'local' ? item.total : 0), 0);
   };
 
   const calcularTotalFinal = () => {
@@ -250,13 +250,13 @@ function App() {
       let etapaAtual = null;
       let subEtapaAtual = null;
 
-      for (const item of ItensComTotais) {
+      for (const item of itensComTotais) {
         if (item.nivel === 'local') {
           localAtual = { nome: item.descricao, etapas: [] };
-          OrcamentoFormatado.locais.push(localAtual);
+          orcamentoFormatado.locais.push(localAtual);
         } else if (item.nivel === 'etapa' && localAtual) {
           etapaAtual = { nome: item.descricao, subEtapas: [] };
-          localAtual.etapas.push(encodedAtual);
+          localAtual.etapas.push(etapaAtual);
         } else if (item.nivel === 'subEtapa' && etapaAtual) {
           subEtapaAtual = { nome: item.descricao, servicos: [] };
           etapaAtual.subEtapas.push(subEtapaAtual);
@@ -273,11 +273,11 @@ function App() {
         }
       }
 
-      await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentosos', OrcamentoFormatado);
-      carregarOrcamentosos();
+      await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamentoFormatado);
+      carregarOrcamentos();
       setNomeOrcamento('');
       setObraSelecionada('');
-      set Itens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, precoUnitarioMaterial: 0, precoUnitarioMaoDeObra: 0 }]);
+      setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, precoUnitarioMaterial: 0, precoUnitarioMaoDeObra: 0 }]);
       setBdiMaterialGlobal(40);
       setBdiMaoDeObraGlobal(80);
       setAdmObras(15);
@@ -355,7 +355,7 @@ function App() {
               Já tem conta? Entrar
             </button>
           </p>
-          {mensagem && <p className="mensagem">{Mensagem}</p>}
+          {mensagem && <p className="mensagem">{mensagem}</p>}
         </div>
       )}
 
@@ -371,27 +371,27 @@ function App() {
           </header>
 
           <nav>
-            <button onClick={() => setAba Ativa('dashboard')}>Dashboard</button>
-            <button onClick={() => setAba Ativa('obras')}>Obras</button>
+            <button onClick={() => setAbaAtiva('dashboard')}>Dashboard</button>
+            <button onClick={() => setAbaAtiva('obras')}>Obras</button>
             <button onClick={() => {
-              setAba Ativa('usuarios');
+              setAbaAtiva('usuarios');
               carregarUsuarios();
             }}>Usuários</button>
             <button onClick={() => {
-              setAba Ativa('orcamentosos');
+              setAbaAtiva('orcamentos');
               carregarOrcamentos();
-            }}>Orçamentosos</button>
+            }}>Orçamentos</button>
           </nav>
 
           <main>
-            {aba Ativa === 'dashboard' && (
+            {abaAtiva === 'dashboard' && (
               <div>
                 <h2>📊 Dashboard</h2>
                 <p>Bem-vindo ao painel principal, {usuarioLogado?.nome}!</p>
               </div>
             )}
 
-            {aba Ativa === 'obras' && (
+            {abaAtiva === 'obras' && (
               <div>
                 <h2>🏗️ Obras</h2>
                 <div className="card">
@@ -456,13 +456,13 @@ function App() {
               </div>
             )}
 
-            {aba Ativa === 'usuarios' && (
+            {abaAtiva === 'usuarios' && (
               <div className="card">
                 <h2>👥 Usuários Cadastrados ({usuarios.length})</h2>
                 {usuarios.length === 0 ? (
                   <p>Nenhum usuário encontrado.</p>
                 ) : (
-                  <table className="tabela-usuario">
+                  <table className="tabela-usuarios">
                     <thead>
                       <tr>
                         <th>Nome</th>
@@ -496,7 +496,7 @@ function App() {
               </div>
             )}
 
-            {aba Ativa === 'orcamentosos' && (
+            {abaAtiva === 'orcamentos' && (
               <div className="card">
                 <h2>🧮 Orçamento - Planilha</h2>
                 <form onSubmit={cadastrarOrcamento}>
@@ -556,7 +556,7 @@ function App() {
                   <div style={{ maxHeight: '500px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '6px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
-                        <tr style={{ backgroundColor: '#f1f1 f1', fontWeight: 'bold' }}>
+                        <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
                           <th style={{ padding: '6px', width: '90px' }}>Código</th>
                           <th style={{ padding: '6px' }}>Descrição</th>
                           <th style={{ padding: '6px', width: '70px' }}>Unidade</th>
@@ -568,10 +568,10 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {ItensComTotais.map((item) => (
+                        {itensComTotais.map((item) => (
                           <tr key={item.id} style={{
                             backgroundColor:
-                              item.nivel === 'local' ? '#f0 f8ff' :
+                              item.nivel === 'local' ? '#f0f8ff' :
                               item.nivel === 'etapa' ? '#f5fff0' :
                               item.nivel === 'subEtapa' ? '#fffaf0' : 'white'
                           }}>
@@ -638,7 +638,7 @@ function App() {
                             <td style={{ padding: '4px' }}>
                               <button
                                 type="button"
-                                onClick={() => RemoverItem(item.id)}
+                                onClick={() => removerItem(item.id)}
                                 style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '2px 4px', fontSize: '12px', cursor: 'pointer' }}
                               >
                                 X
@@ -662,7 +662,7 @@ function App() {
                     </div>
                     <div style={{ textAlign: 'right', fontSize: '14px' }}>
                       <div>Subtotal: R$ {calcularSubtotal().toFixed(2)}</div>
-                      <div style={{ fontWeight: 'bold', color: '#2 c3e50' }}>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
                         Total Final: R$ {calcularTotalFinal().toFixed(2)}
                       </div>
                     </div>
