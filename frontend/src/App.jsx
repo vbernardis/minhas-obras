@@ -22,12 +22,12 @@ function App() {
   // Estados para usuários
   const [usuarios, setUsuarios] = useState([]);
 
-  // Estado para orçamentos
-  const [orcamentos, setOrcamentos] = useState([]);
+  // Estado para orçamentosos
+  const [orcamentosos, setOrcamentosos] = useState([]);
   const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [itens, setItens] = useState([
-    { id: 1, nivel: 'local', codigo: '01', descricao: '', total: 0 }
+    { id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, precoUnitarioMaterial: 0, precoUnitarioMaoDeObra: 0 }
   ]);
   const [bdiMaterialGlobal, setBdiMaterialGlobal] = useState(40);
   const [bdiMaoDeObraGlobal, setBdiMaoDeObraGlobal] = useState(80);
@@ -37,14 +37,14 @@ function App() {
   const proximoId = () => Math.max(...itens.map(i => i.id), 0) + 1;
 
   // Estado para aba ativa
-  const [abaAtiva, setAbaAtiva] = useState('dashboard');
+  const [abaAtiva, setAba Ativa] = useState('dashboard');
 
   // Carregar dados ao entrar no sistema
   useEffect(() => {
     if (tela === 'sistema') {
       carregarObras();
       carregarUsuarios();
-      carregarOrcamentos();
+      carregarOrcamentosos();
     }
   }, [tela]);
 
@@ -66,12 +66,12 @@ function App() {
     }
   };
 
-  const carregarOrcamentos = async () => {
+  const carregarOrcamentosos = async () => {
     try {
-      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/orcamentos');
-      setOrcamentos(resposta.data);
+      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/orcamentosos');
+      setOrcamentosos(resposta.data);
     } catch (erro) {
-      console.error('Erro ao carregar orçamentos');
+      console.error('Erro ao carregar orçamentosos');
     }
   };
 
@@ -83,7 +83,7 @@ function App() {
         nome: nomeObra,
         endereco: enderecoObra,
         proprietario: proprietarioObra,
-        responsavel: responsavelObra,
+        Responsavel: ResponsavelObra,
         status: statusObra
       };
       await axios.post('https://minhas-obras-backend.onrender.com/api/obras', novaObra);
@@ -134,14 +134,14 @@ function App() {
     setTela('login');
   };
 
-  // Funções para orçamentos
+  // Funções para orçamentosos
   const adicionarItem = (nivel) => {
     const id = proximoId();
     let codigo = '';
 
     switch (nivel) {
       case 'local':
-        const locais = itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0);
+        const locais = Itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0);
         codigo = `${Math.max(...locais, 0) + 1}`;
         break;
       case 'etapa':
@@ -157,32 +157,31 @@ function App() {
         codigo = '';
     }
 
-    setItens([...itens, {
+    set Itens([...Itens, {
       id,
       nivel,
       codigo,
       descricao: '',
       unidade: '',
       quantidade: 1,
-      valorUnitarioMaterial: 0,
-      valorUnitarioMaoDeObra: 0,
-      total: 0
+      precoUnitarioMaterial: 0,
+      precoUnitarioMaoDeObra: 0
     }]);
   };
 
-  const removerItem = (id) => {
-    setItens(itens.filter(item => item.id !== id));
+  const RemoverItem = (id) => {
+    set Itens(itens.filter(item => item.id !== id));
   };
 
   const atualizarItem = (id, campo, valor) => {
-    setItens(itens.map(item => item.id === id ? { ...item, [campo]: valor } : item));
+    set Itens(itens.map(item => item.id === id ? { ...item, [campo]: valor } : item));
   };
 
   const calcularTotalItem = (item) => {
     if (item.nivel !== 'servico') return 0;
-    const valorMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
-    const valorMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
-    return valorMat + valorMO;
+    const totalMat = item.quantidade * item.precoUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
+    const totalMO = item.quantidade * item.precoUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
+    return totalMat + totalMO;
   };
 
   const calcularHierarquia = () => {
@@ -218,10 +217,10 @@ function App() {
     return Array.from(map.values());
   };
 
-  const itensComTotais = calcularHierarquia();
+  const ItensComTotais = calcularHierarquia();
 
   const calcularSubtotal = () => {
-    return itensComTotais.reduce((acc, item) => acc + (item.nivel === 'local' ? item.total : 0), 0);
+    return ItensComTotais.reduce((acc, item) => acc + (item.nivel === 'local' ? item.total : 0), 0);
   };
 
   const calcularTotalFinal = () => {
@@ -251,13 +250,13 @@ function App() {
       let etapaAtual = null;
       let subEtapaAtual = null;
 
-      for (const item of itensComTotais) {
+      for (const item of ItensComTotais) {
         if (item.nivel === 'local') {
           localAtual = { nome: item.descricao, etapas: [] };
-          orcamentoFormatado.locais.push(localAtual);
+          OrcamentoFormatado.locais.push(localAtual);
         } else if (item.nivel === 'etapa' && localAtual) {
           etapaAtual = { nome: item.descricao, subEtapas: [] };
-          localAtual.etapas.push(etapaAtual);
+          localAtual.etapas.push(encodedAtual);
         } else if (item.nivel === 'subEtapa' && etapaAtual) {
           subEtapaAtual = { nome: item.descricao, servicos: [] };
           etapaAtual.subEtapas.push(subEtapaAtual);
@@ -266,19 +265,19 @@ function App() {
             descricao: item.descricao,
             unidade: item.unidade,
             quantidade: item.quantidade,
-            valorUnitarioMaterial: item.valorUnitarioMaterial,
-            valorUnitarioMaoDeObra: item.valorUnitarioMaoDeObra,
+            precoUnitarioMaterial: item.precoUnitarioMaterial,
+            precoUnitarioMaoDeObra: item.precoUnitarioMaoDeObra,
             bdiMaterial: bdiMaterialGlobal,
             bdiMaoDeObra: bdiMaoDeObraGlobal
           });
         }
       }
 
-      await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamentoFormatado);
-      carregarOrcamentos();
+      await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentosos', OrcamentoFormatado);
+      carregarOrcamentosos();
       setNomeOrcamento('');
       setObraSelecionada('');
-      setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', total: 0 }]);
+      set Itens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, precoUnitarioMaterial: 0, precoUnitarioMaoDeObra: 0 }]);
       setBdiMaterialGlobal(40);
       setBdiMaoDeObraGlobal(80);
       setAdmObras(15);
@@ -356,7 +355,7 @@ function App() {
               Já tem conta? Entrar
             </button>
           </p>
-          {mensagem && <p className="mensagem">{mensagem}</p>}
+          {mensagem && <p className="mensagem">{Mensagem}</p>}
         </div>
       )}
 
@@ -372,27 +371,27 @@ function App() {
           </header>
 
           <nav>
-            <button onClick={() => setAbaAtiva('dashboard')}>Dashboard</button>
-            <button onClick={() => setAbaAtiva('obras')}>Obras</button>
+            <button onClick={() => setAba Ativa('dashboard')}>Dashboard</button>
+            <button onClick={() => setAba Ativa('obras')}>Obras</button>
             <button onClick={() => {
-              setAbaAtiva('usuarios');
+              setAba Ativa('usuarios');
               carregarUsuarios();
             }}>Usuários</button>
             <button onClick={() => {
-              setAbaAtiva('orcamentos');
+              setAba Ativa('orcamentosos');
               carregarOrcamentos();
-            }}>Orçamentos</button>
+            }}>Orçamentosos</button>
           </nav>
 
           <main>
-            {abaAtiva === 'dashboard' && (
+            {aba Ativa === 'dashboard' && (
               <div>
                 <h2>📊 Dashboard</h2>
                 <p>Bem-vindo ao painel principal, {usuarioLogado?.nome}!</p>
               </div>
             )}
 
-            {abaAtiva === 'obras' && (
+            {aba Ativa === 'obras' && (
               <div>
                 <h2>🏗️ Obras</h2>
                 <div className="card">
@@ -457,13 +456,13 @@ function App() {
               </div>
             )}
 
-            {abaAtiva === 'usuarios' && (
+            {aba Ativa === 'usuarios' && (
               <div className="card">
                 <h2>👥 Usuários Cadastrados ({usuarios.length})</h2>
                 {usuarios.length === 0 ? (
                   <p>Nenhum usuário encontrado.</p>
                 ) : (
-                  <table className="tabela-usuarios">
+                  <table className="tabela-usuario">
                     <thead>
                       <tr>
                         <th>Nome</th>
@@ -497,7 +496,7 @@ function App() {
               </div>
             )}
 
-            {abaAtiva === 'orcamentos' && (
+            {aba Ativa === 'orcamentosos' && (
               <div className="card">
                 <h2>🧮 Orçamento - Planilha</h2>
                 <form onSubmit={cadastrarOrcamento}>
@@ -554,30 +553,28 @@ function App() {
                     </div>
                   </div>
 
-                  <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '6px' }}>
+                  <div style={{ maxHeight: '500px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '6px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
-                        <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
-                          <th style={{ padding: '6px', width: '70px' }}>Nível</th>
+                        <tr style={{ backgroundColor: '#f1f1 f1', fontWeight: 'bold' }}>
                           <th style={{ padding: '6px', width: '90px' }}>Código</th>
                           <th style={{ padding: '6px' }}>Descrição</th>
-                          <th style={{ padding: '6px', width: '70px' }}>Unid.</th>
-                          <th style={{ padding: '6px', width: '80px' }}>Qtd</th>
-                          <th style={{ padding: '6px', width: '100px' }}>Vl. Mat. Unit</th>
-                          <th style={{ padding: '6px', width: '100px' }}>Vl. MO Unit</th>
-                          <th style={{ padding: '6px', width: '100px' }}>Total</th>
+                          <th style={{ padding: '6px', width: '70px' }}>Unidade</th>
+                          <th style={{ padding: '6px', width: '80px' }}>Quantidade</th>
+                          <th style={{ padding: '6px', width: '110px' }}>Preço Unitário Material</th>
+                          <th style={{ padding: '6px', width: '110px' }}>Preço Unitário Mão de Obra</th>
+                          <th style={{ padding: '6px', width: '110px' }}>Preço Total</th>
                           <th style={{ padding: '6px', width: '50px' }}>Ação</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {itensComTotais.map((item) => (
+                        {ItensComTotais.map((item) => (
                           <tr key={item.id} style={{
                             backgroundColor:
-                              item.nivel === 'local' ? '#f0f8ff' :
+                              item.nivel === 'local' ? '#f0 f8ff' :
                               item.nivel === 'etapa' ? '#f5fff0' :
                               item.nivel === 'subEtapa' ? '#fffaf0' : 'white'
                           }}>
-                            <td style={{ padding: '4px', fontWeight: 'bold' }}>{item.nivel.charAt(0).toUpperCase() + item.nivel.slice(1)}</td>
                             <td style={{ padding: '4px' }}>
                               <input
                                 type="text"
@@ -616,16 +613,16 @@ function App() {
                                 <td style={{ padding: '4px' }}>
                                   <input
                                     type="number"
-                                    value={item.valorUnitarioMaterial}
-                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
+                                    value={item.precoUnitarioMaterial}
+                                    onChange={(e) => atualizarItem(item.id, 'precoUnitarioMaterial', parseFloat(e.target.value) || 0)}
                                     style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
                                 <td style={{ padding: '4px' }}>
                                   <input
                                     type="number"
-                                    value={item.valorUnitarioMaoDeObra}
-                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
+                                    value={item.precoUnitarioMaoDeObra}
+                                    onChange={(e) => atualizarItem(item.id, 'precoUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
                                     style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
@@ -634,14 +631,14 @@ function App() {
                                 </td>
                               </>
                             ) : (
-                              <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50', padding: '4px' }}>
+                              <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50', padding: '4px' }}>
                                 Total: R$ {item.total.toFixed(2)}
                               </td>
                             )}
                             <td style={{ padding: '4px' }}>
                               <button
                                 type="button"
-                                onClick={() => removerItem(item.id)}
+                                onClick={() => RemoverItem(item.id)}
                                 style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '2px 4px', fontSize: '12px', cursor: 'pointer' }}
                               >
                                 X
@@ -665,7 +662,7 @@ function App() {
                     </div>
                     <div style={{ textAlign: 'right', fontSize: '14px' }}>
                       <div>Subtotal: R$ {calcularSubtotal().toFixed(2)}</div>
-                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                      <div style={{ fontWeight: 'bold', color: '#2 c3e50' }}>
                         Total Final: R$ {calcularTotalFinal().toFixed(2)}
                       </div>
                     </div>
