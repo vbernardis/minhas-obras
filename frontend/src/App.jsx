@@ -27,11 +27,14 @@ function App() {
   const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [itens, setItens] = useState([
-    { nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, total: 0 }
+    { id: 1, nivel: 'local', codigo: '01', descricao: '', total: 0 }
   ]);
-  const [bdiMaterialGlobal, setBdiMaterialGlobal] = useState(40); // % aplicado em todos os serviços
+  const [bdiMaterialGlobal, setBdiMaterialGlobal] = useState(40);
   const [bdiMaoDeObraGlobal, setBdiMaoDeObraGlobal] = useState(80);
-  const [admObras, setAdmObras] = useState(15); // ADM de Obras %
+  const [admObras, setAdmObras] = useState(15);
+
+  // ID sequencial para novos itens
+  const proximoId = () => Math.max(...itens.map(i => i.id), 0) + 1;
 
   // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
@@ -132,89 +135,76 @@ function App() {
   };
 
   // Funções para orçamentos
-  const adicionarItem = () => {
-    const novoCodigo = (parseFloat(itens[itens.length - 1]?.codigo || '0') + 1).toFixed(0);
-    setItens([...itens, {
-      nivel: 'local',
-      codigo: novoCodigo,
-      descricao: '',
-      unidade: '',
-      quantidade: 0,
-      valorUnitarioMaterial: 0,
-      valorUnitarioMaoDeObra: 0,
-      total: 0
-    }]);
+  const adicionarItem = (nivel) => {
+    const id = proximoId();
+    let codigo = '';
+
+    switch (nivel) {
+      case 'local':
+        codigo = `${Math.max(...itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0), 0) + 1}`;
+        break;
+      case 'etapa':
+        codigo = '01.01'; // Será ajustado depois
+        break;
+      case 'subEtapa':
+        codigo = '01.01.01';
+        break;
+      case 'servico':
+        codigo = '01.01.01.01';
+        break;
+      default:
+        codigo = '';
+    }
+
+    setItens([...itens, { id, nivel, codigo, descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, total: 0 }]);
   };
 
-  const removerItem = (index) => {
-    const novos = [...itens];
-    novos.splice(index, 1);
-    setItens(novos);
+  const removerItem = (id) => {
+    setItens(itens.filter(item => item.id !== id));
   };
 
-  const atualizarItem = (index, campo, valor) => {
-    const novos = [...itens];
-    novos[index][campo] = valor;
-    setItens(novos);
+  const atualizarItem = (id, campo, valor) => {
+    setItens(itens.map(item => item.id === id ? { ...item, [campo]: valor } : item));
   };
 
   const calcularTotalItem = (item) => {
-    if (item.nivel === 'servico') {
-      const valorMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
-      const valorMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
-      return valorMat + valorMO;
-    }
-    return 0;
+    if (item.nivel !== 'servico') return 0;
+    const valorMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
+    const valorMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
+    return valorMat + valorMO;
   };
 
   const calcularHierarquia = () => {
-    const resultado = [...itens];
-    let i = 0;
+    const resultado = [...itens].sort((a, b) => a.id - b.id);
+    const map = new Map(resultado.map(item => [item.id, { ...item, total: 0 }]));
 
-    while (i < resultado.length) {
-      const item = resultado[i];
-
-      if (item.nivel === 'local') {
-        let soma = 0;
-        let j = i + 1;
-        while (j < resultado.length && !resultado[j].codigo.startsWith(`${item.codigo}.`)) {
-          j++;
-        }
-        while (j < resultado.length && resultado[j].nivel !== 'local') {
-          if (resultado[j].nivel === 'etapa') {
-            let somaEtapa = 0;
-            let k = j + 1;
-            while (k < resultado.length && !(resultado[k].nivel === 'etapa' || resultado[k].nivel === 'local')) {
-              if (resultado[k].nivel === 'subEtapa') {
-                let somaSub = 0;
-                let l = k + 1;
-                while (l < resultado.length && !(resultado[l].nivel === 'subEtapa' || resultado[l].nivel === 'etapa' || resultado[l].nivel === 'local')) {
-                  if (resultado[l].nivel === 'servico') {
-                    somaSub += calcularTotalItem(resultado[l]);
-                  }
-                  l++;
-                }
-                resultado[k].total = somaSub;
-                somaEtapa += somaSub;
-              } else if (resultado[k].nivel === 'servico') {
-                somaEtapa += calcularTotalItem(resultado[k]);
-              }
-              k++;
-            }
-            resultado[j].total = somaEtapa;
-            soma += somaEtapa;
-          } else if (resultado[j].nivel === 'servico') {
-            soma += calcularTotalItem(resultado[j]);
-          }
-          j++;
-        }
-        resultado[i].total = soma;
+    // Atualiza totais dos serviços
+    for (let item of resultado) {
+      if (item.nivel === 'servico') {
+        const total = calcularTotalItem(item);
+        map.get(item.id).total = total;
       }
-
-      i++;
     }
 
-    return resultado;
+    // Soma para níveis superiores
+    for (let item of resultado) {
+      if (item.nivel === 'local' || item.nivel === 'etapa' || item.nivel === 'subEtapa') {
+        let soma = 0;
+        let found = false;
+        for (let seguido of resultado) {
+          if (seguido.id === item.id) found = true;
+          else if (found) {
+            if (seguido.nivel === 'local') break;
+            if (seguido.nivel === 'etapa' && item.nivel === 'local') continue;
+            if (seguido.nivel === 'subEtapa' && (item.nivel === 'local' || item.nivel === 'etapa')) continue;
+            soma += map.get(seguido.id)?.total || 0;
+          }
+        }
+        map.get(item.id).total = soma;
+      }
+    }
+
+    return Array.from(map.values());
   };
 
   const itensComTotais = calcularHierarquia();
@@ -249,14 +239,13 @@ function App() {
       carregarOrcamentos();
       setNomeOrcamento('');
       setObraSelecionada('');
-      setItens([
-        { nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, total: 0 }
-      ]);
+      setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', total: 0 }]);
       setBdiMaterialGlobal(40);
       setBdiMaoDeObraGlobal(80);
       setAdmObras(15);
     } catch (erro) {
-      alert('Erro ao cadastrar orçamento');
+      console.error('Erro ao cadastrar orçamento', erro);
+      alert('Erro ao cadastrar orçamento: ' + (erro.response?.data?.erro || 'Verifique o console'));
     }
   };
 
@@ -470,7 +459,7 @@ function App() {
 
             {abaAtiva === 'orcamentos' && (
               <div className="card">
-                <h2>🧮 Orçamento - Hierárquico com Totais</h2>
+                <h2>🧮 Orçamento - Formato Planilha</h2>
                 <form onSubmit={cadastrarOrcamento}>
                   <div style={{ marginBottom: '15px' }}>
                     <label>Obra:</label>
@@ -518,115 +507,116 @@ function App() {
                     </div>
                   </div>
 
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '14px' }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
-                        <th style={{ padding: '8px', width: '70px' }}>Nível</th>
-                        <th style={{ padding: '8px', width: '90px' }}>Código</th>
-                        <th style={{ padding: '8px' }}>Descrição</th>
-                        <th style={{ padding: '8px', width: '80px' }}>Unid.</th>
-                        <th style={{ padding: '8px', width: '90px' }}>Qtd</th>
-                        <th style={{ padding: '8px', width: '110px' }}>Vl. Mat. Unit</th>
-                        <th style={{ padding: '8px', width: '110px' }}>Vl. MO Unit</th>
-                        <th style={{ padding: '8px', width: '110px' }}>Total</th>
-                        <th style={{ padding: '8px', width: '60px' }}>Ação</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {itensComTotais.map((item, idx) => (
-                        <tr key={idx} style={{
-                          backgroundColor:
-                            item.nivel === 'local' ? '#f0f8ff' :
-                            item.nivel === 'etapa' ? '#f5fff0' :
-                            item.nivel === 'subEtapa' ? '#fffaf0' : 'white'
-                        }}>
-                          <td style={{ padding: '6px' }}>
-                            <select
-                              value={item.nivel}
-                              onChange={(e) => atualizarItem(idx, 'nivel', e.target.value)}
-                              disabled
-                              style={{ width: '100%' }}
-                            >
-                              <option value="local">Local</option>
-                              <option value="etapa">Etapa</option>
-                              <option value="subEtapa">Sub Etapa</option>
-                              <option value="servico">Serviço</option>
-                            </select>
-                          </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="text"
-                              value={item.codigo}
-                              onChange={(e) => atualizarItem(idx, 'codigo', e.target.value)}
-                              style={{ width: '100%', fontWeight: 'bold' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="text"
-                              value={item.descricao}
-                              onChange={(e) => atualizarItem(idx, 'descricao', e.target.value)}
-                              style={{ width: '100%' }}
-                            />
-                          </td>
-                          {item.nivel === 'servico' ? (
-                            <>
-                              <td style={{ padding: '6px' }}>
-                                <input
-                                  type="text"
-                                  value={item.unidade}
-                                  onChange={(e) => atualizarItem(idx, 'unidade', e.target.value)}
-                                  style={{ width: '100%' }}
-                                />
-                              </td>
-                              <td style={{ padding: '6px' }}>
-                                <input
-                                  type="number"
-                                  value={item.quantidade}
-                                  onChange={(e) => atualizarItem(idx, 'quantidade', parseFloat(e.target.value) || 0)}
-                                  style={{ width: '100%' }}
-                                />
-                              </td>
-                              <td style={{ padding: '6px' }}>
-                                <input
-                                  type="number"
-                                  value={item.valorUnitarioMaterial}
-                                  onChange={(e) => atualizarItem(idx, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
-                                  style={{ width: '100%' }}
-                                />
-                              </td>
-                              <td style={{ padding: '6px' }}>
-                                <input
-                                  type="number"
-                                  value={item.valorUnitarioMaoDeObra}
-                                  onChange={(e) => atualizarItem(idx, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
-                                  style={{ width: '100%' }}
-                                />
-                              </td>
-                              <td style={{ padding: '6px', fontWeight: 'bold', color: '#27ae60' }}>
-                                R$ {calcularTotalItem(item).toFixed(2)}
-                              </td>
-                            </>
-                          ) : (
-                            <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50' }}>
-                              Total: R$ {item.total.toFixed(2)}
-                            </td>
-                          )}
-                          <td style={{ padding: '6px' }}>
-                            <button
-                              type="button"
-                              onClick={() => removerItem(idx)}
-                              style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '4px 6px', cursor: 'pointer' }}
-                            >
-                              X
-                            </button>
-                          </td>
+                  <div style={{ maxHeight: '500px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '8px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
+                          <th style={{ padding: '8px', width: '70px' }}>Nível</th>
+                          <th style={{ padding: '8px', width: '90px' }}>Código</th>
+                          <th style={{ padding: '8px' }}>Descrição</th>
+                          <th style={{ padding: '8px', width: '80px' }}>Unid.</th>
+                          <th style={{ padding: '8px', width: '90px' }}>Qtd</th>
+                          <th style={{ padding: '8px', width: '110px' }}>Vl. Mat. Unit</th>
+                          <th style={{ padding: '8px', width: '110px' }}>Vl. MO Unit</th>
+                          <th style={{ padding: '8px', width: '110px' }}>Total</th>
+                          <th style={{ padding: '8px', width: '60px' }}>Ação</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  <button type="button" onClick={adicionarItem} style={{ marginTop: '15px' }}>+ Adicionar Local</button>
+                      </thead>
+                      <tbody>
+                        {itensComTotais.map((item) => (
+                          <tr key={item.id} style={{
+                            backgroundColor:
+                              item.nivel === 'local' ? '#f0f8ff' :
+                              item.nivel === 'etapa' ? '#f5fff0' :
+                              item.nivel === 'subEtapa' ? '#fffaf0' : 'white'
+                          }}>
+                            <td style={{ padding: '6px' }}>
+                              <select
+                                value=""
+                                onChange={(e) => adicionarItem(e.target.value)}
+                                style={{ width: '100%' }}
+                              >
+                                <option value="">+ Adicionar</option>
+                                <option value="local">+ Local</option>
+                                <option value="etapa">+ Etapa</option>
+                                <option value="subEtapa">+ Sub Etapa</option>
+                                <option value="servico">+ Serviço</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: '6px' }}>
+                              <input
+                                type="text"
+                                value={item.codigo}
+                                onChange={(e) => atualizarItem(item.id, 'codigo', e.target.value)}
+                                style={{ width: '100%', fontWeight: 'bold' }}
+                                readOnly={item.nivel !== 'servico'}
+                              />
+                            </td>
+                            <td style={{ padding: '6px' }}>
+                              <input
+                                type="text"
+                                value={item.descricao}
+                                onChange={(e) => atualizarItem(item.id, 'descricao', e.target.value)}
+                                style={{ width: '100%' }}
+                              />
+                            </td>
+                            {item.nivel === 'servico' ? (
+                              <>
+                                <td style={{ padding: '6px' }}>
+                                  <input
+                                    type="text"
+                                    value={item.unidade}
+                                    onChange={(e) => atualizarItem(item.id, 'unidade', e.target.value)}
+                                    style={{ width: '100%' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '6px' }}>
+                                  <input
+                                    type="number"
+                                    value={item.quantidade}
+                                    onChange={(e) => atualizarItem(item.id, 'quantidade', parseFloat(e.target.value) || 0)}
+                                    style={{ width: '100%' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '6px' }}>
+                                  <input
+                                    type="number"
+                                    value={item.valorUnitarioMaterial}
+                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
+                                    style={{ width: '100%' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '6px' }}>
+                                  <input
+                                    type="number"
+                                    value={item.valorUnitarioMaoDeObra}
+                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
+                                    style={{ width: '100%' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '6px', fontWeight: 'bold', color: '#27ae60' }}>
+                                  R$ {calcularTotalItem(item).toFixed(2)}
+                                </td>
+                              </>
+                            ) : (
+                              <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50' }}>
+                                Total: R$ {item.total.toFixed(2)}
+                              </td>
+                            )}
+                            <td style={{ padding: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => removerItem(item.id)}
+                                style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '4px 6px', cursor: 'pointer' }}
+                              >
+                                X
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
                   <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
