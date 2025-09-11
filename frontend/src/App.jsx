@@ -27,9 +27,11 @@ function App() {
   const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [itens, setItens] = useState([
-    { nivel: 'servico', codigo: '', descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }
+    { nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, total: 0 }
   ]);
-  const [admObras, setAdmObras] = useState(15); // % de ADM de Obras
+  const [bdiMaterialGlobal, setBdiMaterialGlobal] = useState(40); // % aplicado em todos os serviços
+  const [bdiMaoDeObraGlobal, setBdiMaoDeObraGlobal] = useState(80);
+  const [admObras, setAdmObras] = useState(15); // ADM de Obras %
 
   // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
@@ -131,16 +133,16 @@ function App() {
 
   // Funções para orçamentos
   const adicionarItem = () => {
+    const novoCodigo = (parseFloat(itens[itens.length - 1]?.codigo || '0') + 1).toFixed(0);
     setItens([...itens, {
-      nivel: 'servico',
-      codigo: '',
+      nivel: 'local',
+      codigo: novoCodigo,
       descricao: '',
       unidade: '',
-      quantidade: 1,
+      quantidade: 0,
       valorUnitarioMaterial: 0,
       valorUnitarioMaoDeObra: 0,
-      bdiMaterial: 40,
-      bdiMaoDeObra: 80
+      total: 0
     }]);
   };
 
@@ -157,36 +159,73 @@ function App() {
   };
 
   const calcularTotalItem = (item) => {
-    const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + (item.bdiMaterial || 0) / 100);
-    const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + (item.bdiMaoDeObra || 0) / 100);
-    return totalMat + totalMO;
+    if (item.nivel === 'servico') {
+      const valorMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
+      const valorMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
+      return valorMat + valorMO;
+    }
+    return 0;
   };
 
+  const calcularHierarquia = () => {
+    const resultado = [...itens];
+    let i = 0;
+
+    while (i < resultado.length) {
+      const item = resultado[i];
+
+      if (item.nivel === 'local') {
+        let soma = 0;
+        let j = i + 1;
+        while (j < resultado.length && !resultado[j].codigo.startsWith(`${item.codigo}.`)) {
+          j++;
+        }
+        while (j < resultado.length && resultado[j].nivel !== 'local') {
+          if (resultado[j].nivel === 'etapa') {
+            let somaEtapa = 0;
+            let k = j + 1;
+            while (k < resultado.length && !(resultado[k].nivel === 'etapa' || resultado[k].nivel === 'local')) {
+              if (resultado[k].nivel === 'subEtapa') {
+                let somaSub = 0;
+                let l = k + 1;
+                while (l < resultado.length && !(resultado[l].nivel === 'subEtapa' || resultado[l].nivel === 'etapa' || resultado[l].nivel === 'local')) {
+                  if (resultado[l].nivel === 'servico') {
+                    somaSub += calcularTotalItem(resultado[l]);
+                  }
+                  l++;
+                }
+                resultado[k].total = somaSub;
+                somaEtapa += somaSub;
+              } else if (resultado[k].nivel === 'servico') {
+                somaEtapa += calcularTotalItem(resultado[k]);
+              }
+              k++;
+            }
+            resultado[j].total = somaEtapa;
+            soma += somaEtapa;
+          } else if (resultado[j].nivel === 'servico') {
+            soma += calcularTotalItem(resultado[j]);
+          }
+          j++;
+        }
+        resultado[i].total = soma;
+      }
+
+      i++;
+    }
+
+    return resultado;
+  };
+
+  const itensComTotais = calcularHierarquia();
+
   const calcularSubtotal = () => {
-    return itens.reduce((acc, item) => acc + calcularTotalItem(item), 0);
+    return itensComTotais.reduce((acc, item) => acc + (item.nivel === 'local' ? item.total : 0), 0);
   };
 
   const calcularTotalFinal = () => {
-    const subtotal = calcularSubtotal();
-    return subtotal * (1 + admObras / 100);
+    return calcularSubtotal() * (1 + admObras / 100);
   };
-
-  const gerarCodigoAutomatico = (nivel, index) => {
-  const prefixos = {
-    local: `${index + 1}`,
-    etapa: `${Math.floor(index / 10) + 1}.${(index % 10) + 1}`,
-    subEtapa: `${Math.floor(index / 100) + 1}.${Math.floor((index % 100) / 10) + 1}.${(index % 10) + 1}`,
-    servico: `${Math.floor(index / 1000) + 1}.${Math.floor((index % 1000) / 100) + 1}.${Math.floor((index % 100) / 10) + 1}.${(index % 10) + 1}`
-  };
-  return prefixos[nivel] || '';
-};
-
-const atualizarNivel = (index, novoNivel) => {
-  const novos = [...itens];
-  novos[index].nivel = novoNivel;
-  novos[index].codigo = gerarCodigoAutomatico(novoNivel, index);
-  setItens(novos);
-};
 
   const cadastrarOrcamento = async (e) => {
     e.preventDefault();
@@ -200,7 +239,9 @@ const atualizarNivel = (index, novoNivel) => {
       const orcamento = {
         obraId: parseInt(obraSelecionada),
         nome: nomeOrcamento,
-        itens,
+        itens: itensComTotais,
+        bdiMaterialGlobal,
+        bdiMaoDeObraGlobal,
         admObras
       };
 
@@ -209,8 +250,10 @@ const atualizarNivel = (index, novoNivel) => {
       setNomeOrcamento('');
       setObraSelecionada('');
       setItens([
-        { nivel: 'servico', codigo: '', descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }
+        { nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, total: 0 }
       ]);
+      setBdiMaterialGlobal(40);
+      setBdiMaoDeObraGlobal(80);
       setAdmObras(15);
     } catch (erro) {
       alert('Erro ao cadastrar orçamento');
@@ -427,7 +470,7 @@ const atualizarNivel = (index, novoNivel) => {
 
             {abaAtiva === 'orcamentos' && (
               <div className="card">
-                <h2>🧮 Orçamento - Formato Simplificado</h2>
+                <h2>🧮 Orçamento - Hierárquico com Totais</h2>
                 <form onSubmit={cadastrarOrcamento}>
                   <div style={{ marginBottom: '15px' }}>
                     <label>Obra:</label>
@@ -454,29 +497,54 @@ const atualizarNivel = (index, novoNivel) => {
                     style={{ width: '100%', padding: '8px', marginBottom: '15px' }}
                   />
 
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center' }}>
+                    <div>
+                      <label>BDI Material (%): </label>
+                      <input
+                        type="number"
+                        value={bdiMaterialGlobal}
+                        onChange={(e) => setBdiMaterialGlobal(parseFloat(e.target.value) || 0)}
+                        style={{ width: '80px', padding: '6px' }}
+                      />%
+                    </div>
+                    <div>
+                      <label>BDI MO (%): </label>
+                      <input
+                        type="number"
+                        value={bdiMaoDeObraGlobal}
+                        onChange={(e) => setBdiMaoDeObraGlobal(parseFloat(e.target.value) || 0)}
+                        style={{ width: '80px', padding: '6px' }}
+                      />%
+                    </div>
+                  </div>
+
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '14px' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
-                        <th style={{ padding: '8px', width: '60px' }}>Nível</th>
-                        <th style={{ padding: '8px', width: '80px' }}>Código</th>
+                        <th style={{ padding: '8px', width: '70px' }}>Nível</th>
+                        <th style={{ padding: '8px', width: '90px' }}>Código</th>
                         <th style={{ padding: '8px' }}>Descrição</th>
-                        <th style={{ padding: '8px', width: '70px' }}>Unid.</th>
-                        <th style={{ padding: '8px', width: '80px' }}>Qtd</th>
-                        <th style={{ padding: '8px', width: '100px' }}>Vl. Mat. Unit</th>
-                        <th style={{ padding: '8px', width: '80px' }}>BDI Mat.</th>
-                        <th style={{ padding: '8px', width: '100px' }}>Vl. MO Unit</th>
-                        <th style={{ padding: '8px', width: '80px' }}>BDI MO</th>
-                        <th style={{ padding: '8px', width: '100px' }}>Total</th>
+                        <th style={{ padding: '8px', width: '80px' }}>Unid.</th>
+                        <th style={{ padding: '8px', width: '90px' }}>Qtd</th>
+                        <th style={{ padding: '8px', width: '110px' }}>Vl. Mat. Unit</th>
+                        <th style={{ padding: '8px', width: '110px' }}>Vl. MO Unit</th>
+                        <th style={{ padding: '8px', width: '110px' }}>Total</th>
                         <th style={{ padding: '8px', width: '60px' }}>Ação</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {itens.map((item, idx) => (
-                        <tr key={idx}>
+                      {itensComTotais.map((item, idx) => (
+                        <tr key={idx} style={{
+                          backgroundColor:
+                            item.nivel === 'local' ? '#f0f8ff' :
+                            item.nivel === 'etapa' ? '#f5fff0' :
+                            item.nivel === 'subEtapa' ? '#fffaf0' : 'white'
+                        }}>
                           <td style={{ padding: '6px' }}>
                             <select
                               value={item.nivel}
-                              onChange={(e) => atualizarNivel(idx, e.target.value)}
+                              onChange={(e) => atualizarItem(idx, 'nivel', e.target.value)}
+                              disabled
                               style={{ width: '100%' }}
                             >
                               <option value="local">Local</option>
@@ -490,7 +558,7 @@ const atualizarNivel = (index, novoNivel) => {
                               type="text"
                               value={item.codigo}
                               onChange={(e) => atualizarItem(idx, 'codigo', e.target.value)}
-                              style={{ width: '100%' }}
+                              style={{ width: '100%', fontWeight: 'bold' }}
                             />
                           </td>
                           <td style={{ padding: '6px' }}>
@@ -501,57 +569,49 @@ const atualizarNivel = (index, novoNivel) => {
                               style={{ width: '100%' }}
                             />
                           </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="text"
-                              value={item.unidade}
-                              onChange={(e) => atualizarItem(idx, 'unidade', e.target.value)}
-                              style={{ width: '100%' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="number"
-                              value={item.quantidade}
-                              onChange={(e) => atualizarItem(idx, 'quantidade', parseFloat(e.target.value) || 0)}
-                              style={{ width: '100%' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="number"
-                              value={item.valorUnitarioMaterial}
-                              onChange={(e) => atualizarItem(idx, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
-                              style={{ width: '100%' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="number"
-                              value={item.bdiMaterial}
-                              onChange={(e) => atualizarItem(idx, 'bdiMaterial', parseFloat(e.target.value) || 0)}
-                              style={{ width: '100%' }}
-                            />%
-                          </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="number"
-                              value={item.valorUnitarioMaoDeObra}
-                              onChange={(e) => atualizarItem(idx, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
-                              style={{ width: '100%' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px' }}>
-                            <input
-                              type="number"
-                              value={item.bdiMaoDeObra}
-                              onChange={(e) => atualizarItem(idx, 'bdiMaoDeObra', parseFloat(e.target.value) || 0)}
-                              style={{ width: '100%' }}
-                            />%
-                          </td>
-                          <td style={{ padding: '6px', fontWeight: 'bold', color: '#27ae60' }}>
-                            R$ {calcularTotalItem(item).toFixed(2)}
-                          </td>
+                          {item.nivel === 'servico' ? (
+                            <>
+                              <td style={{ padding: '6px' }}>
+                                <input
+                                  type="text"
+                                  value={item.unidade}
+                                  onChange={(e) => atualizarItem(idx, 'unidade', e.target.value)}
+                                  style={{ width: '100%' }}
+                                />
+                              </td>
+                              <td style={{ padding: '6px' }}>
+                                <input
+                                  type="number"
+                                  value={item.quantidade}
+                                  onChange={(e) => atualizarItem(idx, 'quantidade', parseFloat(e.target.value) || 0)}
+                                  style={{ width: '100%' }}
+                                />
+                              </td>
+                              <td style={{ padding: '6px' }}>
+                                <input
+                                  type="number"
+                                  value={item.valorUnitarioMaterial}
+                                  onChange={(e) => atualizarItem(idx, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
+                                  style={{ width: '100%' }}
+                                />
+                              </td>
+                              <td style={{ padding: '6px' }}>
+                                <input
+                                  type="number"
+                                  value={item.valorUnitarioMaoDeObra}
+                                  onChange={(e) => atualizarItem(idx, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
+                                  style={{ width: '100%' }}
+                                />
+                              </td>
+                              <td style={{ padding: '6px', fontWeight: 'bold', color: '#27ae60' }}>
+                                R$ {calcularTotalItem(item).toFixed(2)}
+                              </td>
+                            </>
+                          ) : (
+                            <td colSpan={6} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50' }}>
+                              Total: R$ {item.total.toFixed(2)}
+                            </td>
+                          )}
                           <td style={{ padding: '6px' }}>
                             <button
                               type="button"
@@ -566,7 +626,7 @@ const atualizarNivel = (index, novoNivel) => {
                     </tbody>
                   </table>
 
-                  <button type="button" onClick={adicionarItem} style={{ marginTop: '15px' }}>+ Adicionar Item</button>
+                  <button type="button" onClick={adicionarItem} style={{ marginTop: '15px' }}>+ Adicionar Local</button>
 
                   <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
