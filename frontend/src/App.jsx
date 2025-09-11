@@ -188,7 +188,6 @@ function App() {
     const resultado = [...itens].sort((a, b) => a.id - b.id);
     const map = new Map(resultado.map(item => [item.id, { ...item, total: 0 }]));
 
-    // Atualiza serviços
     for (let item of resultado) {
       if (item.nivel === 'servico') {
         const total = calcularTotalItem(item);
@@ -196,7 +195,6 @@ function App() {
       }
     }
 
-    // Soma hierárquica
     for (let item of resultado) {
       if (item.nivel === 'local' || item.nivel === 'etapa' || item.nivel === 'subEtapa') {
         let soma = 0;
@@ -245,7 +243,6 @@ function App() {
         locais: []
       };
 
-      // Monta estrutura hierárquica para o backend
       let localAtual = null;
       let etapaAtual = null;
       let subEtapaAtual = null;
@@ -261,6 +258,10 @@ function App() {
           subEtapaAtual = { nome: item.descricao, servicos: [] };
           etapaAtual.subEtapas.push(subEtapaAtual);
         } else if (item.nivel === 'servico' && subEtapaAtual) {
+          const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
+          const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
+          const valorTotal = totalMat + totalMO;
+
           subEtapaAtual.servicos.push({
             descricao: item.descricao,
             unidade: item.unidade,
@@ -268,7 +269,8 @@ function App() {
             valorUnitarioMaterial: item.valorUnitarioMaterial,
             valorUnitarioMaoDeObra: item.valorUnitarioMaoDeObra,
             bdiMaterial: bdiMaterialGlobal,
-            bdiMaoDeObra: bdiMaoDeObraGlobal
+            bdiMaoDeObra: bdiMaoDeObraGlobal,
+            valorTotal
           });
         }
       }
@@ -290,76 +292,38 @@ function App() {
 
   return (
     <div className="App">
-      {/* Tela de Login */}
+      {/* TELA DE LOGIN */}
       {tela === 'login' && (
         <div className="tela-login">
           <h1>Minhas Obras</h1>
           <h2>🔐 Entrar no Sistema</h2>
           <form onSubmit={logar}>
-            <input
-              placeholder="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              placeholder="Senha"
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-            />
+            <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
             <button type="submit">Entrar</button>
           </form>
-          <p>
-            <button onClick={() => setTela('cadastro')} className="link">
-              Criar uma conta
-            </button>
-          </p>
+          <p><button onClick={() => setTela('cadastro')} className="link">Criar uma conta</button></p>
           {mensagem && <p className="mensagem">{mensagem}</p>}
         </div>
       )}
 
-      {/* Tela de Cadastro */}
+      {/* TELA DE CADASTRO */}
       {tela === 'cadastro' && (
         <div className="tela-cadastro">
           <h1>Minhas Obras</h1>
           <h2>📝 Criar Conta</h2>
           <form onSubmit={cadastrar}>
-            <input
-              placeholder="Nome completo"
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-            />
-            <input
-              placeholder="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              placeholder="Senha"
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-            />
+            <input placeholder="Nome completo" type="text" value={nome} onChange={(e) => setNome(e.target.value)} required />
+            <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
             <button type="submit">Cadastrar</button>
           </form>
-          <p>
-            <button onClick={() => setTela('login')} className="link">
-              Já tem conta? Entrar
-            </button>
-          </p>
+          <p><button onClick={() => setTela('login')} className="link">Já tem conta? Entrar</button></p>
           {mensagem && <p className="mensagem">{mensagem}</p>}
         </div>
       )}
 
-      {/* Tela do Sistema */}
+      {/* TELA DO SISTEMA */}
       {tela === 'sistema' && (
         <div className="tela-sistema">
           <header>
@@ -373,56 +337,27 @@ function App() {
           <nav>
             <button onClick={() => setAbaAtiva('dashboard')}>Dashboard</button>
             <button onClick={() => setAbaAtiva('obras')}>Obras</button>
-            <button onClick={() => {
-              setAbaAtiva('usuarios');
-              carregarUsuarios();
-            }}>Usuários</button>
-            <button onClick={() => {
-              setAbaAtiva('orcamentos');
-              carregarOrcamentos();
-            }}>Orçamentos</button>
+            <button onClick={() => { setAbaAtiva('usuarios'); carregarUsuarios(); }}>Usuários</button>
+            <button onClick={() => { setAbaAtiva('orcamentos'); carregarOrcamentos(); }}>Orçamentos</button>
           </nav>
 
           <main>
             {abaAtiva === 'dashboard' && (
-              <div>
-                <h2>📊 Dashboard</h2>
-                <p>Bem-vindo ao painel principal, {usuarioLogado?.nome}!</p>
-              </div>
+              <div><h2>📊 Dashboard</h2><p>Bem-vindo, {usuarioLogado?.nome}!</p></div>
             )}
 
             {abaAtiva === 'obras' && (
               <div>
                 <h2>🏗️ Obras</h2>
+                {/* Formulário de cadastro de obra */}
                 <div className="card">
                   <h3>Cadastrar Nova Obra</h3>
                   <form onSubmit={cadastrarObra}>
-                    <input
-                      placeholder="Nome da obra"
-                      value={nomeObra}
-                      onChange={(e) => setNomeObra(e.target.value)}
-                      required
-                    />
-                    <input
-                      placeholder="Endereço"
-                      value={enderecoObra}
-                      onChange={(e) => setEnderecoObra(e.target.value)}
-                      required
-                    />
-                    <input
-                      placeholder="Proprietário (opcional)"
-                      value={proprietarioObra}
-                      onChange={(e) => setProprietarioObra(e.target.value)}
-                    />
-                    <input
-                      placeholder="Responsável (opcional)"
-                      value={responsavelObra}
-                      onChange={(e) => setResponsavelObra(e.target.value)}
-                    />
-                    <select
-                      value={statusObra}
-                      onChange={(e) => setStatusObra(e.target.value)}
-                    >
+                    <input placeholder="Nome da obra" value={nomeObra} onChange={(e) => setNomeObra(e.target.value)} required />
+                    <input placeholder="Endereço" value={enderecoObra} onChange={(e) => setEnderecoObra(e.target.value)} required />
+                    <input placeholder="Proprietário (opcional)" value={proprietarioObra} onChange={(e) => setProprietarioObra(e.target.value)} />
+                    <input placeholder="Responsável (opcional)" value={responsavelObra} onChange={(e) => setResponsavelObra(e.target.value)} />
+                    <select value={statusObra} onChange={(e) => setStatusObra(e.target.value)}>
                       <option value="planejamento">Planejamento</option>
                       <option value="em_andamento">Em Andamento</option>
                       <option value="pausada">Pausada</option>
@@ -432,6 +367,7 @@ function App() {
                   </form>
                 </div>
 
+                {/* Lista de obras */}
                 <div className="card">
                   <h3>Obras Cadastradas ({obras.length})</h3>
                   {obras.length === 0 ? (
