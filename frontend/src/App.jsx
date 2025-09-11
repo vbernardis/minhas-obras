@@ -27,7 +27,7 @@ function App() {
   const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
   const [itens, setItens] = useState([
-    { id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, precoUnitarioMaterial: 0, precoUnitarioMaoDeObra: 0 }
+    { id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0 }
   ]);
   const [bdiMaterialGlobal, setBdiMaterialGlobal] = useState(40);
   const [bdiMaoDeObraGlobal, setBdiMaoDeObraGlobal] = useState(80);
@@ -36,7 +36,7 @@ function App() {
   // ID sequencial
   const proximoId = () => Math.max(...itens.map(i => i.id), 0) + 1;
 
-  // Estado para aba ativa (sem espaços!)
+  // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
   // Carregar dados ao entrar no sistema
@@ -164,8 +164,8 @@ function App() {
       descricao: '',
       unidade: '',
       quantidade: 1,
-      precoUnitarioMaterial: 0,
-      precoUnitarioMaoDeObra: 0
+      valorUnitarioMaterial: 0,
+      valorUnitarioMaoDeObra: 0
     }]);
   };
 
@@ -179,8 +179,8 @@ function App() {
 
   const calcularTotalItem = (item) => {
     if (item.nivel !== 'servico') return 0;
-    const totalMat = item.quantidade * item.precoUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
-    const totalMO = item.quantidade * item.precoUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
+    const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
+    const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
     return totalMat + totalMO;
   };
 
@@ -265,8 +265,8 @@ function App() {
             descricao: item.descricao,
             unidade: item.unidade,
             quantidade: item.quantidade,
-            precoUnitarioMaterial: item.precoUnitarioMaterial,
-            precoUnitarioMaoDeObra: item.precoUnitarioMaoDeObra,
+            valorUnitarioMaterial: item.valorUnitarioMaterial,
+            valorUnitarioMaoDeObra: item.valorUnitarioMaoDeObra,
             bdiMaterial: bdiMaterialGlobal,
             bdiMaoDeObra: bdiMaoDeObraGlobal
           });
@@ -277,7 +277,7 @@ function App() {
       carregarOrcamentos();
       setNomeOrcamento('');
       setObraSelecionada('');
-      setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, precoUnitarioMaterial: 0, precoUnitarioMaoDeObra: 0 }]);
+      setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0 }]);
       setBdiMaterialGlobal(40);
       setBdiMaoDeObraGlobal(80);
       setAdmObras(15);
@@ -561,8 +561,8 @@ function App() {
                           <th style={{ padding: '6px' }}>Descrição</th>
                           <th style={{ padding: '6px', width: '70px' }}>Unidade</th>
                           <th style={{ padding: '6px', width: '80px' }}>Quantidade</th>
-                          <th style={{ padding: '6px', width: '110px' }}>Preço Unitário Material</th>
-                          <th style={{ padding: '6px', width: '110px' }}>Preço Unitário Mão de Obra</th>
+                          <th style={{ padding: '6px', width: '110px' }}>Valor Unit. Material</th>
+                          <th style={{ padding: '6px', width: '110px' }}>Valor Unit. Mão de Obra</th>
                           <th style={{ padding: '6px', width: '110px' }}>Preço Total</th>
                           <th style={{ padding: '6px', width: '50px' }}>Ação</th>
                         </tr>
@@ -613,16 +613,16 @@ function App() {
                                 <td style={{ padding: '4px' }}>
                                   <input
                                     type="number"
-                                    value={item.precoUnitarioMaterial}
-                                    onChange={(e) => atualizarItem(item.id, 'precoUnitarioMaterial', parseFloat(e.target.value) || 0)}
+                                    value={item.valorUnitarioMaterial}
+                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
                                     style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
                                 <td style={{ padding: '4px' }}>
                                   <input
                                     type="number"
-                                    value={item.precoUnitarioMaoDeObra}
-                                    onChange={(e) => atualizarItem(item.id, 'precoUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
+                                    value={item.valorUnitarioMaoDeObra}
+                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
                                     style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                   />
                                 </td>
