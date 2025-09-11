@@ -26,32 +26,10 @@ function App() {
   const [orcamentos, setOrcamentos] = useState([]);
   const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
-  const [locais, setLocais] = useState([
-    {
-      nome: '',
-      etapas: [
-        {
-          nome: '',
-          subEtapas: [
-            {
-              nome: '',
-              servicos: [
-                {
-                  descricao: '',
-                  unidade: '',
-                  quantidade: 1,
-                  valorUnitarioMaterial: 0,
-                  valorUnitarioMaoDeObra: 0,
-                  bdiMaterial: 40,
-                  bdiMaoDeObra: 80
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
+  const [itens, setItens] = useState([
+    { nivel: 'servico', codigo: '', descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }
   ]);
+  const [admObras, setAdmObras] = useState(15); // % de ADM de Obras
 
   // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
@@ -152,34 +130,10 @@ function App() {
   };
 
   // Funções para orçamentos
-  const adicionarLocal = () => {
-    setLocais([...locais, {
-      nome: '',
-      etapas: []
-    }]);
-  };
-
-  const adicionarEtapa = (idxLocal) => {
-    const novos = [...locais];
-    novos[idxLocal].etapas.push({
-      nome: '',
-      subEtapas: []
-    });
-    setLocais(novos);
-  };
-
-  const adicionarSubEtapa = (idxLocal, idxEtapa) => {
-    const novos = [...locais];
-    novos[idxLocal].etapas[idxEtapa].subEtapas.push({
-      nome: '',
-      servicos: []
-    });
-    setLocais(novos);
-  };
-
-  const adicionarServico = (idxLocal, idxEtapa, idxSub) => {
-    const novos = [...locais];
-    novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos.push({
+  const adicionarItem = () => {
+    setItens([...itens, {
+      nivel: 'servico',
+      codigo: '',
       descricao: '',
       unidade: '',
       quantidade: 1,
@@ -187,44 +141,52 @@ function App() {
       valorUnitarioMaoDeObra: 0,
       bdiMaterial: 40,
       bdiMaoDeObra: 80
-    });
-    setLocais(novos);
+    }]);
   };
 
-  const removerServico = (idxLocal, idxEtapa, idxSub, idxServico) => {
-    const novos = [...locais];
-    novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos =
-      novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos.filter((_, i) => i !== idxServico);
-    setLocais(novos);
+  const removerItem = (index) => {
+    const novos = [...itens];
+    novos.splice(index, 1);
+    setItens(novos);
   };
 
-  const atualizarServico = (idxLocal, idxEtapa, idxSub, idxServico, campo, valor) => {
-    const novos = [...locais];
-    novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].servicos[idxServico][campo] = valor;
-    setLocais(novos);
+  const atualizarItem = (index, campo, valor) => {
+    const novos = [...itens];
+    novos[index][campo] = valor;
+    setItens(novos);
   };
 
-  const calcularTotalItem = (servico) => {
-    const totalMat = servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100);
-    const totalMO = servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100);
-    return (totalMat + totalMO).toFixed(2);
+  const calcularTotalItem = (item) => {
+    const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + (item.bdiMaterial || 0) / 100);
+    const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + (item.bdiMaoDeObra || 0) / 100);
+    return totalMat + totalMO;
   };
 
-  const calcularTotalOrcamento = () => {
-    let total = 0;
-    locais.forEach(local => {
-      local.etapas.forEach(etapa => {
-        etapa.subEtapas.forEach(subEtapa => {
-          subEtapa.servicos.forEach(servico => {
-            const totalMat = servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100);
-            const totalMO = servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100);
-            total += totalMat + totalMO;
-          });
-        });
-      });
-    });
-    return total.toFixed(2);
+  const calcularSubtotal = () => {
+    return itens.reduce((acc, item) => acc + calcularTotalItem(item), 0);
   };
+
+  const calcularTotalFinal = () => {
+    const subtotal = calcularSubtotal();
+    return subtotal * (1 + admObras / 100);
+  };
+
+  const gerarCodigoAutomatico = (nivel, index) => {
+  const prefixos = {
+    local: `${index + 1}`,
+    etapa: `${Math.floor(index / 10) + 1}.${(index % 10) + 1}`,
+    subEtapa: `${Math.floor(index / 100) + 1}.${Math.floor((index % 100) / 10) + 1}.${(index % 10) + 1}`,
+    servico: `${Math.floor(index / 1000) + 1}.${Math.floor((index % 1000) / 100) + 1}.${Math.floor((index % 100) / 10) + 1}.${(index % 10) + 1}`
+  };
+  return prefixos[nivel] || '';
+};
+
+const atualizarNivel = (index, novoNivel) => {
+  const novos = [...itens];
+  novos[index].nivel = novoNivel;
+  novos[index].codigo = gerarCodigoAutomatico(novoNivel, index);
+  setItens(novos);
+};
 
   const cadastrarOrcamento = async (e) => {
     e.preventDefault();
@@ -238,39 +200,18 @@ function App() {
       const orcamento = {
         obraId: parseInt(obraSelecionada),
         nome: nomeOrcamento,
-        locais
+        itens,
+        admObras
       };
 
       await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamento);
       carregarOrcamentos();
       setNomeOrcamento('');
       setObraSelecionada('');
-      setLocais([
-        {
-          nome: '',
-          etapas: [
-            {
-              nome: '',
-              subEtapas: [
-                {
-                  nome: '',
-                  servicos: [
-                    {
-                      descricao: '',
-                      unidade: '',
-                      quantidade: 1,
-                      valorUnitarioMaterial: 0,
-                      valorUnitarioMaoDeObra: 0,
-                      bdiMaterial: 40,
-                      bdiMaoDeObra: 80
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+      setItens([
+        { nivel: 'servico', codigo: '', descricao: '', unidade: '', quantidade: 1, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0, bdiMaterial: 40, bdiMaoDeObra: 80 }
       ]);
+      setAdmObras(15);
     } catch (erro) {
       alert('Erro ao cadastrar orçamento');
     }
@@ -486,7 +427,7 @@ function App() {
 
             {abaAtiva === 'orcamentos' && (
               <div className="card">
-                <h2>🧮 Novo Orçamento</h2>
+                <h2>🧮 Orçamento - Formato Simplificado</h2>
                 <form onSubmit={cadastrarOrcamento}>
                   <div style={{ marginBottom: '15px' }}>
                     <label>Obra:</label>
@@ -513,115 +454,150 @@ function App() {
                     style={{ width: '100%', padding: '8px', marginBottom: '15px' }}
                   />
 
-                  <div style={{ maxHeight: '600px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '8px', padding: '10px' }}>
-                    {locais.map((local, idxLocal) => (
-                      <div key={idxLocal} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', marginBottom: '15px', backgroundColor: '#f9f9f9' }}>
-                        <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>
-                          <input
-                            placeholder="01 - Local (ex: Torre A)"
-                            value={local.nome}
-                            onChange={(e) => {
-                              const novos = [...locais];
-                              novos[idxLocal].nome = e.target.value;
-                              setLocais(novos);
-                            }}
-                            required
-                            style={{ width: '70%', padding: '6px', fontWeight: 'bold' }}
-                          />
-                          <button type="button" onClick={() => adicionarEtapa(idxLocal)} style={{ marginLeft: '10px', padding: '5px 10px' }}>
-                            + Etapa
-                          </button>
-                        </h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
+                        <th style={{ padding: '8px', width: '60px' }}>Nível</th>
+                        <th style={{ padding: '8px', width: '80px' }}>Código</th>
+                        <th style={{ padding: '8px' }}>Descrição</th>
+                        <th style={{ padding: '8px', width: '70px' }}>Unid.</th>
+                        <th style={{ padding: '8px', width: '80px' }}>Qtd</th>
+                        <th style={{ padding: '8px', width: '100px' }}>Vl. Mat. Unit</th>
+                        <th style={{ padding: '8px', width: '80px' }}>BDI Mat.</th>
+                        <th style={{ padding: '8px', width: '100px' }}>Vl. MO Unit</th>
+                        <th style={{ padding: '8px', width: '80px' }}>BDI MO</th>
+                        <th style={{ padding: '8px', width: '100px' }}>Total</th>
+                        <th style={{ padding: '8px', width: '60px' }}>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itens.map((item, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: '6px' }}>
+                            <select
+                              value={item.nivel}
+                              onChange={(e) => atualizarNivel(idx, e.target.value)}
+                              style={{ width: '100%' }}
+                            >
+                              <option value="local">Local</option>
+                              <option value="etapa">Etapa</option>
+                              <option value="subEtapa">Sub Etapa</option>
+                              <option value="servico">Serviço</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="text"
+                              value={item.codigo}
+                              onChange={(e) => atualizarItem(idx, 'codigo', e.target.value)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="text"
+                              value={item.descricao}
+                              onChange={(e) => atualizarItem(idx, 'descricao', e.target.value)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="text"
+                              value={item.unidade}
+                              onChange={(e) => atualizarItem(idx, 'unidade', e.target.value)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="number"
+                              value={item.quantidade}
+                              onChange={(e) => atualizarItem(idx, 'quantidade', parseFloat(e.target.value) || 0)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="number"
+                              value={item.valorUnitarioMaterial}
+                              onChange={(e) => atualizarItem(idx, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="number"
+                              value={item.bdiMaterial}
+                              onChange={(e) => atualizarItem(idx, 'bdiMaterial', parseFloat(e.target.value) || 0)}
+                              style={{ width: '100%' }}
+                            />%
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="number"
+                              value={item.valorUnitarioMaoDeObra}
+                              onChange={(e) => atualizarItem(idx, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <input
+                              type="number"
+                              value={item.bdiMaoDeObra}
+                              onChange={(e) => atualizarItem(idx, 'bdiMaoDeObra', parseFloat(e.target.value) || 0)}
+                              style={{ width: '100%' }}
+                            />%
+                          </td>
+                          <td style={{ padding: '6px', fontWeight: 'bold', color: '#27ae60' }}>
+                            R$ {calcularTotalItem(item).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => removerItem(idx)}
+                              style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '4px 6px', cursor: 'pointer' }}
+                            >
+                              X
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-                        {local.etapas.map((etapa, idxEtapa) => (
-                          <div key={idxEtapa} style={{ marginLeft: '20px', borderLeft: '3px solid #3498db', paddingLeft: '15px', paddingTop: '10px' }}>
-                            <h4 style={{ margin: '0 0 10px 0', color: '#3498db' }}>
-                              <input
-                                placeholder="01.01 - Etapa (ex: Fundações)"
-                                value={etapa.nome}
-                                onChange={(e) => {
-                                  const novos = [...locais];
-                                  novos[idxLocal].etapas[idxEtapa].nome = e.target.value;
-                                  setLocais(novos);
-                                }}
-                                required
-                                style={{ width: '70%', padding: '6px' }}
-                              />
-                              <button type="button" onClick={() => adicionarSubEtapa(idxLocal, idxEtapa)} style={{ marginLeft: '10px', padding: '5px 10px' }}>
-                                + Sub Etapa
-                              </button>
-                            </h4>
+                  <button type="button" onClick={adicionarItem} style={{ marginTop: '15px' }}>+ Adicionar Item</button>
 
-                            {etapa.subEtapas.map((subEtapa, idxSub) => (
-                              <div key={idxSub} style={{ marginLeft: '20px', borderLeft: '2px dashed #e67e22', paddingLeft: '15px', paddingTop: '10px' }}>
-                                <h5 style={{ margin: '0 0 10px 0', color: '#e67e22' }}>
-                                  <input
-                                    placeholder="01.01.01 - Sub Etapa (ex: Armadura)"
-                                    value={subEtapa.nome}
-                                    onChange={(e) => {
-                                      const novos = [...locais];
-                                      novos[idxLocal].etapas[idxEtapa].subEtapas[idxSub].nome = e.target.value;
-                                      setLocais(novos);
-                                    }}
-                                    required
-                                    style={{ width: '70%', padding: '6px' }}
-                                  />
-                                  <button type="button" onClick={() => adicionarServico(idxLocal, idxEtapa, idxSub)} style={{ marginLeft: '10px', padding: '5px 10px' }}>
-                                    + Serviço
-                                  </button>
-                                </h5>
-
-                                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                                  <thead>
-                                    <tr style={{ backgroundColor: '#f8f9fa' }}>
-                                      <th style={{ padding: '8px', textAlign: 'left', width: '80px' }}>01.01.01.01</th>
-                                      <th style={{ padding: '8px', textAlign: 'left' }}>Descrição</th>
-                                      <th style={{ padding: '8px', width: '80px' }}>Unid.</th>
-                                      <th style={{ padding: '8px', width: '80px' }}>Qtd</th>
-                                      <th style={{ padding: '8px', width: '100px' }}>Vl. Mat. Unit</th>
-                                      <th style={{ padding: '8px', width: '80px' }}>BDI Mat.</th>
-                                      <th style={{ padding: '8px', width: '100px' }}>Vl. MO Unit</th>
-                                      <th style={{ padding: '8px', width: '80px' }}>BDI MO</th>
-                                      <th style={{ padding: '8px', width: '100px' }}>Total</th>
-                                      <th style={{ padding: '8px', width: '60px' }}>Ação</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {subEtapa.servicos.map((servico, idxServico) => (
-                                      <tr key={idxServico}>
-                                        <td style={{ padding: '6px', fontWeight: 'bold' }}>{`${idxLocal+1}.${idxEtapa+1}.${idxSub+1}.${idxServico+1}`}</td>
-                                        <td style={{ padding: '6px' }}><input type="text" value={servico.descricao} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'descricao', e.target.value)} style={{ width: '100%' }} /></td>
-                                        <td style={{ padding: '6px' }}><input type="text" value={servico.unidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'unidade', e.target.value)} style={{ width: '100%' }} /></td>
-                                        <td style={{ padding: '6px' }}><input type="number" value={servico.quantidade} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'quantidade', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} /></td>
-                                        <td style={{ padding: '6px' }}><input type="number" value={servico.valorUnitarioMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} /></td>
-                                        <td style={{ padding: '6px' }}><input type="number" value={servico.bdiMaterial} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaterial', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} />%</td>
-                                        <td style={{ padding: '6px' }}><input type="number" value={servico.valorUnitarioMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} /></td>
-                                        <td style={{ padding: '6px' }}><input type="number" value={servico.bdiMaoDeObra} onChange={(e) => atualizarServico(idxLocal, idxEtapa, idxSub, idxServico, 'bdiMaoDeObra', parseFloat(e.target.value) || 0)} style={{ width: '100%' }} />%</td>
-                                        <td style={{ padding: '6px', fontWeight: 'bold', color: '#27ae60' }}>{calcularTotalItem(servico)}</td>
-                                        <td style={{ padding: '6px' }}>
-                                          <button type="button" onClick={() => removerServico(idxLocal, idxEtapa, idxSub, idxServico)} style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '4px 6px', cursor: 'pointer' }}>
-                                            X
-                                          </button>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
+                  <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <label>ADM de Obras (%): </label>
+                      <input
+                        type="number"
+                        value={admObras}
+                        onChange={(e) => setAdmObras(parseFloat(e.target.value) || 0)}
+                        style={{ width: '80px', padding: '6px' }}
+                      />%
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div>Subtotal: R$ {calcularSubtotal().toFixed(2)}</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '1.2em', color: '#2c3e50' }}>
+                        Total Final: R$ {calcularTotalFinal().toFixed(2)}
                       </div>
-                    ))}
+                    </div>
                   </div>
 
-                  <button type="button" onClick={adicionarLocal} style={{ marginTop: '15px', marginBottom: '15px' }}>+ Adicionar Local</button>
-
-                  <div style={{ marginTop: '15px', fontWeight: 'bold', fontSize: '1.1em', color: '#2c3e50' }}>
-                    Total do Orçamento: R$ {calcularTotalOrcamento()}
-                  </div>
-
-                  <button type="submit" style={{ marginTop: '15px', padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', border: 'none', cursor: 'pointer' }}>
+                  <button
+                    type="submit"
+                    style={{
+                      marginTop: '20px',
+                      padding: '12px 24px',
+                      backgroundColor: '#27ae60',
+                      color: 'white',
+                      border: 'none',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
                     Cadastrar Orçamento
                   </button>
                 </form>
