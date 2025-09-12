@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(express.json());
 
-// Porta: obrigatório usar PORT do Render
+// ✅ PORTA CORRETA: Usa a variável de ambiente do Render
 const PORT = process.env.PORT || 10000;
 
 // 🔥 ROTA DE TESTE
@@ -16,10 +16,9 @@ app.get('/teste', (req, res) => {
 });
 
 // ====================
-// ROTAS SIMPLIFICADAS
+// ROTAS PARA USUÁRIOS
 // ====================
 
-// GET /api/usuarios
 app.get('/api/usuarios', async (req, res) => {
   try {
     const usuarios = await prisma.usuario.findMany({
@@ -32,7 +31,6 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
-// POST /api/usuarios
 app.post('/api/usuarios', async (req, res) => {
   const { nome, email, senha } = req.body;
   try {
@@ -46,8 +44,150 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
+app.post('/api/login', async (req, res) => {
+  const { email, senha } = req.body;
+  try {
+    const usuario = await prisma.usuario.findUnique({ where: { email } });
+    if (!usuario || usuario.senha !== senha) {
+      return res.status(401).json({ erro: 'Credenciais inválidas' });
+    }
+    res.json({
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      tipo: usuario.tipo
+    });
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao fazer login' });
+  }
+});
+
+// ==================
+// ROTAS PARA OBRAS
 // ====================
-// INICIALIZAÇÃO SEGURA
+
+app.get('/api/obras', async (req, res) => {
+  try {
+    const obras = await prisma.obra.findMany();
+    res.json(obras);
+  } catch (error) {
+    console.error('Erro ao carregar obras:', error);
+    res.status(500).json({ erro: 'Erro ao carregar obras' });
+  }
+});
+
+app.post('/api/obras', async (req, res) => {
+  const { nome, endereco, proprietario, responsavel, status } = req.body;
+  try {
+    const obra = await prisma.obra.create({
+       {
+        nome,
+        endereco,
+        proprietario: proprietario || '',
+        responsavel: responsavel || '',
+        status: status || 'planejamento'
+      }
+    });
+    res.status(201).json(obra);
+  } catch (error) {
+    console.error('Erro ao cadastrar obra:', error);
+    res.status(500).json({ erro: 'Erro ao cadastrar obra' });
+  }
+});
+
+// ========================
+// ROTAS PARA ORÇAMENTOS
+// ========================
+
+app.get('/api/orcamentos', async (req, res) => {
+  try {
+    const orcamentos = await prisma.orcamento.findMany({
+      include: {
+        obra: true,
+        locais: {
+          include: {
+            etapas: {
+              include: {
+                subEtapas: {
+                  include: {
+                    servicos: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    res.json(orcamentos);
+  } catch (error) {
+    console.error('Erro ao carregar orçamentos:', error);
+    res.status(500).json({ erro: 'Erro ao carregar orçamentos' });
+  }
+});
+
+app.post('/api/orcamentos', async (req, res) => {
+  const { obraId, nome, locais } = req.body;
+
+  if (!obraId || !nome) {
+    return res.status(400).json({ erro: 'Campos obrigatórios ausentes: obraId e nome' });
+  }
+
+  try {
+    const orcamento = await prisma.$transaction(async (prisma) => {
+      const novo = await prisma.orcamento.create({
+         { nome, obraId: parseInt(obraId) }
+      });
+
+      for (const local of locais) {
+        const l = await prisma.local.create({
+           { nome: local.descricao || 'Local', orcamentoId: novo.id }
+        });
+
+        for (const etapa of local.etapas || []) {
+          const e = await prisma.etapa.create({
+             { nome: etapa.descricao || 'Etapa', localId: l.id }
+          });
+
+          for (const sub of etapa.subEtapas || []) {
+            const s = await prisma.subEtapa.create({
+               { nome: sub.descricao || 'Sub Etapa', etapaId: e.id }
+            });
+
+            for (const servico of sub.servicos || []) {
+              const totalMat = (servico.quantidade || 0) * (servico.valorUnitarioMaterial || 0) * (1 + (servico.bdiMaterial || 40) / 100);
+              const totalMO = (servico.quantidade || 0) * (servico.valorUnitarioMaoDeObra || 0) * (1 + (servico.bdiMaoDeObra || 80) / 100);
+
+              await prisma.servico.create({
+                 {
+                  descricao: servico.descricao || 'Serviço',
+                  unidade: servico.unidade || '',
+                  quantidade: parseFloat(servico.quantidade) || 0,
+                  valorUnitarioMaterial: parseFloat(servico.valorUnitarioMaterial) || 0,
+                  valorUnitarioMaoDeObra: parseFloat(servico.valorUnitarioMaoDeObra) || 0,
+                  bdiMaterial: parseFloat(servico.bdiMaterial) || 40,
+                  bdiMaoDeObra: parseFloat(servico.bdiMaoDeObra) || 80,
+                  valorTotal: totalMat + totalMO,
+                  subEtapaId: s.id
+                }
+              });
+            }
+          }
+        }
+      }
+
+      return novo;
+    });
+
+    res.status(201).json(orcamento);
+  } catch (error) {
+    console.error('Erro ao salvar orçamento:', error);
+    res.status(500).json({ erro: 'Erro ao salvar orçamento' });
+  }
+});
+
+// ====================
+// INICIALIZAÇÃO
 // ====================
 
 async function startServer() {
@@ -56,7 +196,7 @@ async function startServer() {
     console.log('✅ Banco de dados conectado com sucesso!');
   } catch (error) {
     console.error('❌ Erro ao conectar ao banco de dados:', error);
-    process.exit(1); // Interrompe se não conectar
+    process.exit(1);
   }
 
   // ✅ ESCUTA EM 0.0.0.0 E NA PORTA DO RENDER
