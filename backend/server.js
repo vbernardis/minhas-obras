@@ -7,18 +7,19 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(express.json());
 
-// ✅ PORTA CORRETA: Usa a variável de ambiente do Render
+// ✅ PORTA CORRETA DO RENDER
 const PORT = process.env.PORT || 10000;
 
-// Rota de teste
+// 🔥 ROTA DE TESTE (obrigatória para verificar se o serviço está vivo)
 app.get('/teste', (req, res) => {
-  res.json({ mensagem: 'Backend funcionando!' });
+  res.json({ mensagem: 'Backend funcionando no Render!' });
 });
 
 // ====================
-// ROTAS PARA USUÁRIOS
+// ROTAS MÍNIMAS PARA FUNCIONAR
 // ====================
 
+// Listar usuários
 app.get('/api/usuarios', async (req, res) => {
   try {
     const usuarios = await prisma.usuario.findMany({
@@ -31,6 +32,7 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
+// Criar usuário
 app.post('/api/usuarios', async (req, res) => {
   const { nome, email, senha } = req.body;
   try {
@@ -39,11 +41,11 @@ app.post('/api/usuarios', async (req, res) => {
     });
     res.status(201).json(usuario);
   } catch (error) {
-    console.error('Erro ao criar usuário:', error);
     res.status(500).json({ erro: 'Erro ao criar usuário' });
   }
 });
 
+// Login
 app.post('/api/login', async (req, res) => {
   const { email, senha } = req.body;
   try {
@@ -62,20 +64,17 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ==================
-// ROTAS PARA OBRAS
-// ====================
-
+// Listar obras
 app.get('/api/obras', async (req, res) => {
   try {
     const obras = await prisma.obra.findMany();
     res.json(obras);
   } catch (error) {
-    console.error('Erro ao carregar obras:', error);
     res.status(500).json({ erro: 'Erro ao carregar obras' });
   }
 });
 
+// Criar obra
 app.post('/api/obras', async (req, res) => {
   const { nome, endereco, proprietario, responsavel, status } = req.body;
   try {
@@ -90,15 +89,11 @@ app.post('/api/obras', async (req, res) => {
     });
     res.status(201).json(obra);
   } catch (error) {
-    console.error('Erro ao cadastrar obra:', error);
     res.status(500).json({ erro: 'Erro ao cadastrar obra' });
   }
 });
 
-// ========================
-// ROTAS PARA ORÇAMENTOS
-// ========================
-
+// Listar orçamentos
 app.get('/api/orcamentos', async (req, res) => {
   try {
     const orcamentos = await prisma.orcamento.findMany({
@@ -126,6 +121,7 @@ app.get('/api/orcamentos', async (req, res) => {
   }
 });
 
+// Criar orçamento
 app.post('/api/orcamentos', async (req, res) => {
   const { obraId, nome, locais } = req.body;
 
@@ -135,13 +131,13 @@ app.post('/api/orcamentos', async (req, res) => {
 
   try {
     const orcamento = await prisma.$transaction(async (prisma) => {
-      const novoOrcamento = await prisma.orcamento.create({
+      const novo = await prisma.orcamento.create({
          { nome, obraId: parseInt(obraId) }
       });
 
       for (const local of locais) {
         const l = await prisma.local.create({
-           { nome: local.descricao || 'Local', orcamentoId: novoOrcamento.id }
+           { nome: local.descricao || 'Local', orcamentoId: novo.id }
         });
 
         for (const etapa of local.etapas || []) {
@@ -176,7 +172,7 @@ app.post('/api/orcamentos', async (req, res) => {
         }
       }
 
-      return novoOrcamento;
+      return novo;
     });
 
     res.status(201).json(orcamento);
@@ -187,22 +183,22 @@ app.post('/api/orcamentos', async (req, res) => {
 });
 
 // ====================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO SEGURA
 // ====================
 
 async function startServer() {
   try {
     await prisma.$connect;
-    console.log('Conectado ao banco de dados com sucesso!');
+    console.log('✅ Conectado ao banco de dados com sucesso!');
   } catch (error) {
-    console.error('Erro ao conectar ao banco de dados:', error);
+    console.error('❌ Erro ao conectar ao banco de dados:', error);
     process.exit(1);
   }
 
-  // ✅ ESCUTA EM 0.0.0.0 E NA PORTA CORRETA
+  // ✅ ESCUTA EM 0.0.0.0 E NA PORTA DO RENDER
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
-    console.log('==> Seu serviço está ativo 🎉');
+    console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
+    console.log('✅ Seu serviço está ativo e pronto para receber requisições!');
   });
 }
 
