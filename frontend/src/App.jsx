@@ -18,10 +18,10 @@ function App() {
   const [responsavelObra, setResponsavelObra] = useState('');
   const [statusObra, setStatusObra] = useState('planejamento');
 
-  // Estados para usuários
+  // Estados para usuarios
   const [usuarios, setUsuarios] = useState([]);
 
-  // Estado para orçamentos
+  // Estado para orcamentos
   const [orcamentos, setOrcamentos] = useState([]);
   const [obraSelecionada, setObraSelecionada] = useState('');
   const [nomeOrcamento, setNomeOrcamento] = useState('');
@@ -32,16 +32,12 @@ function App() {
   const [bdiMaoDeObraGlobal, setBdiMaoDeObraGlobal] = useState(80);
   const [admObras, setAdmObras] = useState(15);
 
-  // ID sequencial
   const proximoId = () => Math.max(...itens.map(i => i.id), 0) + 1;
 
-  // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
-  // URL base do backend
   const BASE_URL = 'https://minhas-obras-backend.onrender.com';
 
-  // Carregar dados ao entrar no sistema
   useEffect(() => {
     if (tela === 'sistema') {
       carregarObras();
@@ -70,7 +66,7 @@ function App() {
         setUsuarios(dados);
       }
     } catch (erro) {
-      console.error('Erro ao carregar usuários:', erro);
+      console.error('Erro ao carregar usuarios:', erro);
     }
   };
 
@@ -82,11 +78,10 @@ function App() {
         setOrcamentos(dados);
       }
     } catch (erro) {
-      console.error('Erro ao carregar orçamentos:', erro);
+      console.error('Erro ao carregar orcamentos:', erro);
     }
   };
 
-  // Função para cadastrar obra
   const cadastrarObra = async (e) => {
     e.preventDefault();
     try {
@@ -115,7 +110,6 @@ function App() {
     }
   };
 
-  // Função de cadastro
   const cadastrar = async (e) => {
     e.preventDefault();
     setMensagem('');
@@ -127,20 +121,19 @@ function App() {
       });
       if (resposta.ok) {
         const usuario = await resposta.json();
-        setMensagem(`Usuário ${usuario.nome} cadastrado com sucesso!`);
+        setMensagem(`Usuario ${usuario.nome} cadastrado com sucesso!`);
         setNome('');
         setEmail('');
         setSenha('');
         carregarUsuarios();
       } else {
-        setMensagem('Erro ao cadastrar usuário');
+        setMensagem('Erro ao cadastrar usuario');
       }
     } catch (erro) {
-      setMensagem('Erro de conexão');
+      setMensagem('Erro de conexao');
     }
   };
 
-  // Função de login
   const logar = async (e) => {
     e.preventDefault();
     setMensagem('');
@@ -157,20 +150,18 @@ function App() {
         setEmail('');
         setSenha('');
       } else {
-        setMensagem('Credenciais inválidas');
+        setMensagem('Credenciais invalidas');
       }
     } catch (erro) {
-      setMensagem('Erro de conexão');
+      setMensagem('Erro de conexao');
     }
   };
 
-  // Função de logout
   const sair = () => {
     setUsuarioLogado(null);
     setTela('login');
   };
 
-  // Funções para orçamentos
   const adicionarItem = (nivel) => {
     const id = proximoId();
     let codigo = '';
@@ -313,7 +304,7 @@ function App() {
         body: JSON.stringify(orcamentoFormatado)
       });
       if (resposta.ok) {
-        alert('Orçamento salvo com sucesso!');
+        alert('Orcamento salvo com sucesso!');
         setNomeOrcamento('');
         setObraSelecionada('');
         setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0 }]);
@@ -322,11 +313,11 @@ function App() {
         setAdmObras(15);
         carregarOrcamentos();
       } else {
-        alert('Erro ao salvar orçamento');
+        alert('Erro ao salvar orcamento');
       }
     } catch (erro) {
-      console.error('Erro ao salvar orçamento:', erro);
-      alert('Erro de conexão');
+      console.error('Erro ao salvar orcamento:', erro);
+      alert('Erro de conexao');
     }
   };
 
@@ -415,8 +406,8 @@ function App() {
           <nav>
             <button onClick={() => setAbaAtiva('dashboard')}>Dashboard</button>
             <button onClick={() => setAbaAtiva('obras')}>Obras</button>
-            <button onClick={() => { setAbaAtiva('usuarios'); carregarUsuarios(); }}>Usuários</button>
-            <button onClick={() => { setAbaAtiva('orcamentos'); carregarOrcamentos(); }}>Orçamentos</button>
+            <button onClick={() => { setAbaAtiva('usuarios'); carregarUsuarios(); }}>Usuarios</button>
+            <button onClick={() => { setAbaAtiva('orcamentos'); carregarOrcamentos(); }}>Orcamentos</button>
           </nav>
 
           <main>
@@ -440,18 +431,18 @@ function App() {
                       required
                     />
                     <input
-                      placeholder="Endereço"
+                      placeholder="Endereco"
                       value={enderecoObra}
                       onChange={(e) => setEnderecoObra(e.target.value)}
                       required
                     />
                     <input
-                      placeholder="Proprietário (opcional)"
+                      placeholder="Proprietario (opcional)"
                       value={proprietarioObra}
                       onChange={(e) => setProprietarioObra(e.target.value)}
                     />
                     <input
-                      placeholder="Responsável (opcional)"
+                      placeholder="Responsavel (opcional)"
                       value={responsavelObra}
                       onChange={(e) => setResponsavelObra(e.target.value)}
                     />
@@ -462,7 +453,7 @@ function App() {
                       <option value="planejamento">Planejamento</option>
                       <option value="em_andamento">Em Andamento</option>
                       <option value="pausada">Pausada</option>
-                      <option value="concluida">Concluída</option>
+                      <option value="concluida">Concluida</option>
                     </select>
                     <button type="submit">Cadastrar Obra</button>
                   </form>
@@ -482,7 +473,7 @@ function App() {
                             {obra.status === 'planejamento' && 'Planejamento'}
                             {obra.status === 'em_andamento' && 'Em Andamento'}
                             {obra.status === 'pausada' && 'Pausada'}
-                            {obra.status === 'concluida' && 'Concluída'}
+                            {obra.status === 'concluida' && 'Concluida'}
                           </span>
                         </li>
                       ))}
@@ -494,9 +485,9 @@ function App() {
 
             {abaAtiva === 'usuarios' && (
               <div className="card">
-                <h2>👥 Usuários Cadastrados ({usuarios.length})</h2>
+                <h2>👥 Usuarios Cadastrados ({usuarios.length})</h2>
                 {usuarios.length === 0 ? (
-                  <p>Nenhum usuário encontrado.</p>
+                  <p>Nenhum usuario encontrado.</p>
                 ) : (
                   <table className="tabela-usuarios">
                     <thead>
@@ -524,7 +515,7 @@ function App() {
 
             {abaAtiva === 'orcamentos' && (
               <div className="card">
-                <h2>🧮 Orçamento - Planilha</h2>
+                <h2>🧮 Orcamento - Planilha</h2>
                 <form onSubmit={cadastrarOrcamento}>
                   <div style={{ marginBottom: '15px' }}>
                     <label>Obra:</label>
@@ -544,7 +535,7 @@ function App() {
                   </div>
 
                   <input
-                    placeholder="Nome do orçamento"
+                    placeholder="Nome do orcamento"
                     value={nomeOrcamento}
                     onChange={(e) => setNomeOrcamento(e.target.value)}
                     required
@@ -555,7 +546,7 @@ function App() {
                     <button type="button" onClick={() => adicionarItem('local')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Local</button>
                     <button type="button" onClick={() => adicionarItem('etapa')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Etapa</button>
                     <button type="button" onClick={() => adicionarItem('subEtapa')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Sub Etapa</button>
-                    <button type="button" onClick={() => adicionarItem('servico')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Serviço</button>
+                    <button type="button" onClick={() => adicionarItem('servico')} style={{ padding: '6px 12px', fontSize: '14px' }}>+ Servico</button>
                   </div>
 
                   <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -583,8 +574,8 @@ function App() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
-                          <th style={{ padding: '6px', width: '90px' }}>Código</th>
-                          <th style={{ padding: '6px' }}>Descrição</th>
+                          <th style={{ padding: '6px', width: '90px' }}>Codigo</th>
+                          <th style={{ padding: '6px' }}>Descricao</th>
                           <th style={{ padding: '6px', width: '70px' }}>Unidade</th>
                           <th style={{ padding: '6px', width: '80px' }}>Quantidade</th>
                           <th style={{ padding: '6px', width: '110px' }}>Valor Unit. Material</th>
@@ -608,3 +599,115 @@ function App() {
                                 onChange={(e) => atualizarItem(item.id, 'codigo', e.target.value)}
                                 style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                 readOnly={item.nivel !== 'servico'}
+                              />
+                            </td>
+                            <td style={{ padding: '4px' }}>
+                              <input
+                                type="text"
+                                value={item.descricao}
+                                onChange={(e) => atualizarItem(item.id, 'descricao', e.target.value)}
+                                style={{ width: '100%', padding: '4px', fontSize: '12px' }}
+                              />
+                            </td>
+                            {item.nivel === 'servico' ? (
+                              <>
+                                <td style={{ padding: '4px' }}>
+                                  <input
+                                    type="text"
+                                    value={item.unidade}
+                                    onChange={(e) => atualizarItem(item.id, 'unidade', e.target.value)}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '4px' }}>
+                                  <input
+                                    type="number"
+                                    value={item.quantidade}
+                                    onChange={(e) => atualizarItem(item.id, 'quantidade', parseFloat(e.target.value) || 0)}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '4px' }}>
+                                  <input
+                                    type="number"
+                                    value={item.valorUnitarioMaterial}
+                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '4px' }}>
+                                  <input
+                                    type="number"
+                                    value={item.valorUnitarioMaoDeObra}
+                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
+                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '4px', fontWeight: 'bold', color: '#27ae60' }}>
+                                  R$ {calcularTotalItem(item).toFixed(2)}
+                                </td>
+                              </>
+                            ) : (
+                              <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50', padding: '4px' }}>
+                                Total: R$ {item.total.toFixed(2)}
+                              </td>
+                            )}
+                            <td style={{ padding: '4px' }}>
+                              <button
+                                type="button"
+                                onClick={() => removerItem(item.id)}
+                                style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '2px 4px', fontSize: '12px', cursor: 'pointer' }}
+                              >
+                                X
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ fontSize: '14px' }}>
+                      <label>ADM de Obras (%): </label>
+                      <input
+                        type="number"
+                        value={admObras}
+                        onChange={(e) => setAdmObras(parseFloat(e.target.value) || 0)}
+                        style={{ width: '70px', padding: '4px' }}
+                      />%
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '14px' }}>
+                      <div>Subtotal: R$ {calcularSubtotal().toFixed(2)}</div>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                        Total Final: R$ {calcularTotalFinal().toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    style={{
+                      marginTop: '15px',
+                      padding: '10px 20px',
+                      backgroundColor: '#27ae60',
+                      color: 'white',
+                      border: 'none',
+                      fontWeight: 'bold',
+                      fontSize: '16px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cadastrar Orcamento
+                  </button>
+                </form>
+              </div>
+            )}
+          </main>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
