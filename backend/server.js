@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(express.json());
 
-// ✅ PORTA DO RENDER
+// Porta: obrigatório usar PORT do ambiente
 const PORT = process.env.PORT || 10000;
 
 // 🔥 ROTA DE TESTE
