@@ -10,16 +10,15 @@ app.use(express.json());
 // ✅ PORTA CORRETA DO RENDER
 const PORT = process.env.PORT || 10000;
 
-// 🔥 ROTA DE TESTE (obrigatória para verificar se o serviço está vivo)
+// 🔥 ROTA DE TESTE
 app.get('/teste', (req, res) => {
-  res.json({ mensagem: 'Backend funcionando no Render!' });
+  res.json({ mensagem: 'Backend funcionando!' });
 });
 
 // ====================
-// ROTAS MÍNIMAS PARA FUNCIONAR
+// ROTAS PARA USUÁRIOS
 // ====================
 
-// Listar usuários
 app.get('/api/usuarios', async (req, res) => {
   try {
     const usuarios = await prisma.usuario.findMany({
@@ -32,7 +31,6 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
-// Criar usuário
 app.post('/api/usuarios', async (req, res) => {
   const { nome, email, senha } = req.body;
   try {
@@ -45,7 +43,6 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
-// Login
 app.post('/api/login', async (req, res) => {
   const { email, senha } = req.body;
   try {
@@ -64,7 +61,10 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Listar obras
+// ==================
+// ROTAS PARA OBRAS
+// ====================
+
 app.get('/api/obras', async (req, res) => {
   try {
     const obras = await prisma.obra.findMany();
@@ -74,7 +74,6 @@ app.get('/api/obras', async (req, res) => {
   }
 });
 
-// Criar obra
 app.post('/api/obras', async (req, res) => {
   const { nome, endereco, proprietario, responsavel, status } = req.body;
   try {
@@ -93,7 +92,10 @@ app.post('/api/obras', async (req, res) => {
   }
 });
 
-// Listar orçamentos
+// ========================
+// ROTAS PARA ORÇAMENTOS
+// ========================
+
 app.get('/api/orcamentos', async (req, res) => {
   try {
     const orcamentos = await prisma.orcamento.findMany({
@@ -121,7 +123,6 @@ app.get('/api/orcamentos', async (req, res) => {
   }
 });
 
-// Criar orçamento
 app.post('/api/orcamentos', async (req, res) => {
   const { obraId, nome, locais } = req.body;
 
@@ -183,13 +184,13 @@ app.post('/api/orcamentos', async (req, res) => {
 });
 
 // ====================
-// INICIALIZAÇÃO SEGURA
+// INICIALIZAÇÃO
 // ====================
 
 async function startServer() {
   try {
     await prisma.$connect;
-    console.log('✅ Conectado ao banco de dados com sucesso!');
+    console.log('✅ Banco de dados conectado!');
   } catch (error) {
     console.error('❌ Erro ao conectar ao banco de dados:', error);
     process.exit(1);
