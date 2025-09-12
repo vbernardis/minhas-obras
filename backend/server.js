@@ -39,7 +39,6 @@ app.post('/api/usuarios', async (req, res) => {
     });
     res.status(201).json(usuario);
   } catch (error) {
-    console.error('Erro ao criar usuário:', error);
     res.status(500).json({ erro: 'Erro ao criar usuário' });
   }
 });
@@ -71,7 +70,6 @@ app.get('/api/obras', async (req, res) => {
     const obras = await prisma.obra.findMany();
     res.json(obras);
   } catch (error) {
-    console.error('Erro ao carregar obras:', error);
     res.status(500).json({ erro: 'Erro ao carregar obras' });
   }
 });
@@ -90,7 +88,6 @@ app.post('/api/obras', async (req, res) => {
     });
     res.status(201).json(obra);
   } catch (error) {
-    console.error('Erro ao cadastrar obra:', error);
     res.status(500).json({ erro: 'Erro ao cadastrar obra' });
   }
 });
@@ -193,7 +190,7 @@ app.post('/api/orcamentos', async (req, res) => {
 async function startServer() {
   try {
     await prisma.$connect;
-    console.log('✅ Banco de dados conectado com sucesso!');
+    console.log('✅ Banco de dados conectado!');
   } catch (error) {
     console.error('❌ Erro ao conectar ao banco de dados:', error);
     process.exit(1);
