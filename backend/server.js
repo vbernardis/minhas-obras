@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(express.json());
 
-// ✅ PORTA CORRETA: Usa a variável de ambiente do Render
+// ✅ PORTA DO RENDER
 const PORT = process.env.PORT || 10000;
 
 // 🔥 ROTA DE TESTE
