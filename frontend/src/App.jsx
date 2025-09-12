@@ -53,7 +53,7 @@ function App() {
       const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/obras');
       setObras(resposta.data);
     } catch (erro) {
-      console.error('Erro ao carregar obras');
+      console.error('Erro ao carregar obras', erro);
     }
   };
 
@@ -62,7 +62,7 @@ function App() {
       const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/usuarios');
       setUsuarios(resposta.data);
     } catch (erro) {
-      console.error('Erro ao carregar usuários');
+      console.error('Erro ao carregar usuários', erro);
     }
   };
 
@@ -71,7 +71,7 @@ function App() {
       const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/orcamentos');
       setOrcamentos(resposta.data);
     } catch (erro) {
-      console.error('Erro ao carregar orçamentos');
+      console.error('Erro ao carregar orçamentos', erro);
     }
   };
 
@@ -179,8 +179,8 @@ function App() {
 
   const calcularTotalItem = (item) => {
     if (item.nivel !== 'servico') return 0;
-    const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
-    const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
+    const totalMat = (item.quantidade || 0) * (item.valorUnitarioMaterial || 0) * (1 + bdiMaterialGlobal / 100);
+    const totalMO = (item.quantidade || 0) * (item.valorUnitarioMaoDeObra || 0) * (1 + bdiMaoDeObraGlobal / 100);
     return totalMat + totalMO;
   };
 
@@ -234,12 +234,9 @@ function App() {
     }
 
     try {
-      const orcamentoFormatado = {
+      const orcamentoEnvio = {
         obraId: parseInt(obraSelecionada),
         nome: nomeOrcamento,
-        bdiMaterialGlobal,
-        bdiMaoDeObraGlobal,
-        admObras,
         locais: []
       };
 
@@ -250,7 +247,7 @@ function App() {
       for (const item of itensComTotais) {
         if (item.nivel === 'local') {
           localAtual = { nome: item.descricao, etapas: [] };
-          orcamentoFormatado.locais.push(localAtual);
+          orcamentoEnvio.locais.push(localAtual);
         } else if (item.nivel === 'etapa' && localAtual) {
           etapaAtual = { nome: item.descricao, subEtapas: [] };
           localAtual.etapas.push(etapaAtual);
@@ -258,16 +255,14 @@ function App() {
           subEtapaAtual = { nome: item.descricao, servicos: [] };
           etapaAtual.subEtapas.push(subEtapaAtual);
         } else if (item.nivel === 'servico' && subEtapaAtual) {
-          const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
-          const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
-          const valorTotal = totalMat + totalMO;
+          const valorTotal = calcularTotalItem(item);
 
           subEtapaAtual.servicos.push({
             descricao: item.descricao,
             unidade: item.unidade,
-            quantidade: item.quantidade,
-            valorUnitarioMaterial: item.valorUnitarioMaterial,
-            valorUnitarioMaoDeObra: item.valorUnitarioMaoDeObra,
+            quantidade: parseFloat(item.quantidade) || 0,
+            valorUnitarioMaterial: parseFloat(item.valorUnitarioMaterial) || 0,
+            valorUnitarioMaoDeObra: parseFloat(item.valorUnitarioMaoDeObra) || 0,
             bdiMaterial: bdiMaterialGlobal,
             bdiMaoDeObra: bdiMaoDeObraGlobal,
             valorTotal
@@ -275,7 +270,11 @@ function App() {
         }
       }
 
-      await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamentoFormatado);
+      console.log('Enviando orçamento:', orcamentoEnvio);
+
+      const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamentoEnvio);
+
+      alert('Orçamento cadastrado com sucesso!');
       carregarOrcamentos();
       setNomeOrcamento('');
       setObraSelecionada('');
@@ -283,10 +282,9 @@ function App() {
       setBdiMaterialGlobal(40);
       setBdiMaoDeObraGlobal(80);
       setAdmObras(15);
-      setMensagem('Orçamento cadastrado com sucesso!');
     } catch (erro) {
-      console.error('Erro ao cadastrar orçamento', erro);
-      alert('Erro ao salvar: ' + (erro.response?.data?.erro || 'Verifique o console'));
+      console.error('Erro ao salvar orçamento', erro.response?.data || erro.message);
+      alert('Erro: Veja o console para detalhes');
     }
   };
 
@@ -349,7 +347,6 @@ function App() {
             {abaAtiva === 'obras' && (
               <div>
                 <h2>🏗️ Obras</h2>
-                {/* Formulário de cadastro de obra */}
                 <div className="card">
                   <h3>Cadastrar Nova Obra</h3>
                   <form onSubmit={cadastrarObra}>
@@ -367,7 +364,6 @@ function App() {
                   </form>
                 </div>
 
-                {/* Lista de obras */}
                 <div className="card">
                   <h3>Obras Cadastradas ({obras.length})</h3>
                   {obras.length === 0 ? (
