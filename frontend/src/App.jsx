@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
@@ -39,6 +38,9 @@ function App() {
   // Estado para aba ativa
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
+  // URL base do backend
+  const BASE_URL = 'https://minhas-obras-backend.onrender.com';
+
   // Carregar dados ao entrar no sistema
   useEffect(() => {
     if (tela === 'sistema') {
@@ -50,28 +52,43 @@ function App() {
 
   const carregarObras = async () => {
     try {
-      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/obras');
-      setObras(resposta.data);
+      const resposta = await fetch(`${BASE_URL}/api/obras`);
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setObras(dados);
+      } else {
+        console.error('Erro ao carregar obras:', resposta.status);
+      }
     } catch (erro) {
-      console.error('Erro ao carregar obras', erro);
+      console.error('Erro de conexão com obras:', erro);
     }
   };
 
   const carregarUsuarios = async () => {
     try {
-      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/usuarios');
-      setUsuarios(resposta.data);
+      const resposta = await fetch(`${BASE_URL}/api/usuarios`);
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setUsuarios(dados);
+      } else {
+        console.error('Erro ao carregar usuários:', resposta.status);
+      }
     } catch (erro) {
-      console.error('Erro ao carregar usuários', erro);
+      console.error('Erro de conexão com usuários:', erro);
     }
   };
 
   const carregarOrcamentos = async () => {
     try {
-      const resposta = await axios.get('https://minhas-obras-backend.onrender.com/api/orcamentos');
-      setOrcamentos(resposta.data);
+      const resposta = await fetch(`${BASE_URL}/api/orcamentos`);
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setOrcamentos(dados);
+      } else {
+        console.error('Erro ao carregar orçamentos:', resposta.status);
+      }
     } catch (erro) {
-      console.error('Erro ao carregar orçamentos', erro);
+      console.error('Erro de conexão com orçamentos:', erro);
     }
   };
 
@@ -86,15 +103,24 @@ function App() {
         responsavel: responsavelObra,
         status: statusObra
       };
-      await axios.post('https://minhas-obras-backend.onrender.com/api/obras', novaObra);
-      carregarObras();
-      setNomeObra('');
-      setEnderecoObra('');
-      setProprietarioObra('');
-      setResponsavelObra('');
-      setStatusObra('planejamento');
+      const resposta = await fetch(`${BASE_URL}/api/obras`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(novaObra)
+      });
+      if (resposta.ok) {
+        carregarObras();
+        setNomeObra('');
+        setEnderecoObra('');
+        setProprietarioObra('');
+        setResponsavelObra('');
+        setStatusObra('planejamento');
+      } else {
+        alert('Erro ao cadastrar obra');
+      }
     } catch (erro) {
-      alert('Erro ao cadastrar obra');
+      console.error('Erro ao salvar obra:', erro);
+      alert('Erro de conexão');
     }
   };
 
@@ -103,13 +129,23 @@ function App() {
     e.preventDefault();
     setMensagem('');
     try {
-      const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/usuarios', { nome, email, senha });
-      setMensagem(resposta.data.mensagem);
-      setNome('');
-      setEmail('');
-      setSenha('');
+      const resposta = await fetch(`${BASE_URL}/api/usuarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, email, senha })
+      });
+      if (resposta.ok) {
+        const usuario = await resposta.json();
+        setMensagem(`Usuário ${usuario.nome} cadastrado com sucesso!`);
+        setNome('');
+        setEmail('');
+        setSenha('');
+        carregarUsuarios();
+      } else {
+        setMensagem('Erro ao cadastrar usuário');
+      }
     } catch (erro) {
-      setMensagem(erro.response?.data?.erro || 'Erro de conexão');
+      setMensagem('Erro de conexão');
     }
   };
 
@@ -118,13 +154,22 @@ function App() {
     e.preventDefault();
     setMensagem('');
     try {
-      const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/login', { email, senha });
-      setUsuarioLogado(resposta.data);
-      setTela('sistema');
-      setEmail('');
-      setSenha('');
+      const resposta = await fetch(`${BASE_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha })
+      });
+      if (resposta.ok) {
+        const usuario = await resposta.json();
+        setUsuarioLogado(usuario);
+        setTela('sistema');
+        setEmail('');
+        setSenha('');
+      } else {
+        setMensagem('Credenciais inválidas');
+      }
     } catch (erro) {
-      setMensagem(erro.response?.data?.erro || 'Erro de conexão');
+      setMensagem('Erro de conexão');
     }
   };
 
@@ -138,7 +183,6 @@ function App() {
   const adicionarItem = (nivel) => {
     const id = proximoId();
     let codigo = '';
-
     switch (nivel) {
       case 'local':
         const locais = itens.filter(i => i.nivel === 'local').map(i => parseInt(i.codigo) || 0);
@@ -179,8 +223,8 @@ function App() {
 
   const calcularTotalItem = (item) => {
     if (item.nivel !== 'servico') return 0;
-    const totalMat = (item.quantidade || 0) * (item.valorUnitarioMaterial || 0) * (1 + bdiMaterialGlobal / 100);
-    const totalMO = (item.quantidade || 0) * (item.valorUnitarioMaoDeObra || 0) * (1 + bdiMaoDeObraGlobal / 100);
+    const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
+    const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
     return totalMat + totalMO;
   };
 
@@ -227,64 +271,71 @@ function App() {
 
   const cadastrarOrcamento = async (e) => {
     e.preventDefault();
-
     if (!obraSelecionada) {
-      alert('Selecione uma obra para vincular o orçamento.');
+      alert('Selecione uma obra.');
       return;
     }
 
-    try {
-      const orcamentoEnvio = {
-        obraId: parseInt(obraSelecionada),
-        nome: nomeOrcamento,
-        locais: []
-      };
+    const orcamentoFormatado = {
+      obraId: parseInt(obraSelecionada),
+      nome: nomeOrcamento,
+      bdiMaterialGlobal,
+      bdiMaoDeObraGlobal,
+      admObras,
+      locais: []
+    };
 
-      let localAtual = null;
-      let etapaAtual = null;
-      let subEtapaAtual = null;
+    let localAtual = null;
+    let etapaAtual = null;
+    let subEtapaAtual = null;
 
-      for (const item of itensComTotais) {
-        if (item.nivel === 'local') {
-          localAtual = { nome: item.descricao, etapas: [] };
-          orcamentoEnvio.locais.push(localAtual);
-        } else if (item.nivel === 'etapa' && localAtual) {
-          etapaAtual = { nome: item.descricao, subEtapas: [] };
-          localAtual.etapas.push(etapaAtual);
-        } else if (item.nivel === 'subEtapa' && etapaAtual) {
-          subEtapaAtual = { nome: item.descricao, servicos: [] };
-          etapaAtual.subEtapas.push(subEtapaAtual);
-        } else if (item.nivel === 'servico' && subEtapaAtual) {
-          const valorTotal = calcularTotalItem(item);
-
-          subEtapaAtual.servicos.push({
-            descricao: item.descricao,
-            unidade: item.unidade,
-            quantidade: parseFloat(item.quantidade) || 0,
-            valorUnitarioMaterial: parseFloat(item.valorUnitarioMaterial) || 0,
-            valorUnitarioMaoDeObra: parseFloat(item.valorUnitarioMaoDeObra) || 0,
-            bdiMaterial: bdiMaterialGlobal,
-            bdiMaoDeObra: bdiMaoDeObraGlobal,
-            valorTotal
-          });
-        }
+    for (const item of itensComTotais) {
+      if (item.nivel === 'local') {
+        localAtual = { descricao: item.descricao, etapas: [] };
+        orcamentoFormatado.locais.push(localAtual);
+      } else if (item.nivel === 'etapa' && localAtual) {
+        etapaAtual = { descricao: item.descricao, subEtapas: [] };
+        localAtual.etapas.push(etapaAtual);
+      } else if (item.nivel === 'subEtapa' && etapaAtual) {
+        subEtapaAtual = { descricao: item.descricao, servicos: [] };
+        etapaAtual.subEtapas.push(subEtapaAtual);
+      } else if (item.nivel === 'servico' && subEtapaAtual) {
+        const totalMat = item.quantidade * item.valorUnitarioMaterial * (1 + bdiMaterialGlobal / 100);
+        const totalMO = item.quantidade * item.valorUnitarioMaoDeObra * (1 + bdiMaoDeObraGlobal / 100);
+        subEtapaAtual.servicos.push({
+          descricao: item.descricao,
+          unidade: item.unidade,
+          quantidade: item.quantidade,
+          valorUnitarioMaterial: item.valorUnitarioMaterial,
+          valorUnitarioMaoDeObra: item.valorUnitarioMaoDeObra,
+          bdiMaterial: bdiMaterialGlobal,
+          bdiMaoDeObra: bdiMaoDeObraGlobal,
+          valorTotal: totalMat + totalMO
+        });
       }
+    }
 
-      console.log('Enviando orçamento:', orcamentoEnvio);
-
-      const resposta = await axios.post('https://minhas-obras-backend.onrender.com/api/orcamentos', orcamentoEnvio);
-
-      alert('Orçamento cadastrado com sucesso!');
-      carregarOrcamentos();
-      setNomeOrcamento('');
-      setObraSelecionada('');
-      setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0 }]);
-      setBdiMaterialGlobal(40);
-      setBdiMaoDeObraGlobal(80);
-      setAdmObras(15);
+    try {
+      const resposta = await fetch(`${BASE_URL}/api/orcamentos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orcamentoFormatado)
+      });
+      if (resposta.ok) {
+        alert('Orçamento salvo com sucesso!');
+        setNomeOrcamento('');
+        setObraSelecionada('');
+        setItens([{ id: 1, nivel: 'local', codigo: '01', descricao: '', unidade: '', quantidade: 0, valorUnitarioMaterial: 0, valorUnitarioMaoDeObra: 0 }]);
+        setBdiMaterialGlobal(40);
+        setBdiMaoDeObraGlobal(80);
+        setAdmObras(15);
+        carregarOrcamentos();
+      } else {
+        alert('Erro ao salvar orçamento');
+      }
     } catch (erro) {
-      console.error('Erro ao salvar orçamento', erro.response?.data || erro.message);
-      alert('Erro: Veja o console para detalhes');
+      console.error('Erro ao salvar orçamento:', erro);
+      alert('Erro de conexão');
     }
   };
 
@@ -296,11 +347,27 @@ function App() {
           <h1>Minhas Obras</h1>
           <h2>🔐 Entrar no Sistema</h2>
           <form onSubmit={logar}>
-            <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+            <input
+              placeholder="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
             <button type="submit">Entrar</button>
           </form>
-          <p><button onClick={() => setTela('cadastro')} className="link">Criar uma conta</button></p>
+          <p>
+            <button onClick={() => setTela('cadastro')} className="link">
+              Criar uma conta
+            </button>
+          </p>
           {mensagem && <p className="mensagem">{mensagem}</p>}
         </div>
       )}
@@ -311,12 +378,34 @@ function App() {
           <h1>Minhas Obras</h1>
           <h2>📝 Criar Conta</h2>
           <form onSubmit={cadastrar}>
-            <input placeholder="Nome completo" type="text" value={nome} onChange={(e) => setNome(e.target.value)} required />
-            <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+            <input
+              placeholder="Nome completo"
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
             <button type="submit">Cadastrar</button>
           </form>
-          <p><button onClick={() => setTela('login')} className="link">Já tem conta? Entrar</button></p>
+          <p>
+            <button onClick={() => setTela('login')} className="link">
+              Já tem conta? Entrar
+            </button>
+          </p>
           {mensagem && <p className="mensagem">{mensagem}</p>}
         </div>
       )}
@@ -341,7 +430,10 @@ function App() {
 
           <main>
             {abaAtiva === 'dashboard' && (
-              <div><h2>📊 Dashboard</h2><p>Bem-vindo, {usuarioLogado?.nome}!</p></div>
+              <div>
+                <h2>📊 Dashboard</h2>
+                <p>Bem-vindo ao painel principal, {usuarioLogado?.nome}!</p>
+              </div>
             )}
 
             {abaAtiva === 'obras' && (
@@ -350,11 +442,32 @@ function App() {
                 <div className="card">
                   <h3>Cadastrar Nova Obra</h3>
                   <form onSubmit={cadastrarObra}>
-                    <input placeholder="Nome da obra" value={nomeObra} onChange={(e) => setNomeObra(e.target.value)} required />
-                    <input placeholder="Endereço" value={enderecoObra} onChange={(e) => setEnderecoObra(e.target.value)} required />
-                    <input placeholder="Proprietário (opcional)" value={proprietarioObra} onChange={(e) => setProprietarioObra(e.target.value)} />
-                    <input placeholder="Responsável (opcional)" value={responsavelObra} onChange={(e) => setResponsavelObra(e.target.value)} />
-                    <select value={statusObra} onChange={(e) => setStatusObra(e.target.value)}>
+                    <input
+                      placeholder="Nome da obra"
+                      value={nomeObra}
+                      onChange={(e) => setNomeObra(e.target.value)}
+                      required
+                    />
+                    <input
+                      placeholder="Endereço"
+                      value={enderecoObra}
+                      onChange={(e) => setEnderecoObra(e.target.value)}
+                      required
+                    />
+                    <input
+                      placeholder="Proprietário (opcional)"
+                      value={proprietarioObra}
+                      onChange={(e) => setProprietarioObra(e.target.value)}
+                    />
+                    <input
+                      placeholder="Responsável (opcional)"
+                      value={responsavelObra}
+                      onChange={(e) => setResponsavelObra(e.target.value)}
+                    />
+                    <select
+                      value={statusObra}
+                      onChange={(e) => setStatusObra(e.target.value)}
+                    >
                       <option value="planejamento">Planejamento</option>
                       <option value="em_andamento">Em Andamento</option>
                       <option value="pausada">Pausada</option>
@@ -399,7 +512,6 @@ function App() {
                       <tr>
                         <th>Nome</th>
                         <th>Email</th>
-                        <th>Tipo</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -409,16 +521,7 @@ function App() {
                           <td>{usuario.nome}</td>
                           <td>{usuario.email}</td>
                           <td>
-                            <span className={`badge tipo-${usuario.tipo}`}>
-                              {usuario.tipo === 'admin' ? 'Admin' : 
-                               usuario.tipo === 'engenheiro' ? 'Engenheiro' : 
-                               usuario.tipo === 'gestor' ? 'Gestor' : 'Usuário'}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`badge status-${usuario.ativo}`}>
-                              {usuario.ativo ? 'Ativo' : 'Inativo'}
-                            </span>
+                            <span className="badge tipo-usuario">Ativo</span>
                           </td>
                         </tr>
                       ))}
