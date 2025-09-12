@@ -70,6 +70,7 @@ app.get('/api/obras', async (req, res) => {
     const obras = await prisma.obra.findMany();
     res.json(obras);
   } catch (error) {
+    console.error('Erro ao carregar obras:', error);
     res.status(500).json({ erro: 'Erro ao carregar obras' });
   }
 });
@@ -88,6 +89,7 @@ app.post('/api/obras', async (req, res) => {
     });
     res.status(201).json(obra);
   } catch (error) {
+    console.error('Erro ao cadastrar obra:', error);
     res.status(500).json({ erro: 'Erro ao cadastrar obra' });
   }
 });
