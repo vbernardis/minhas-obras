@@ -4,10 +4,10 @@ const app = express();
 // Middleware para parsear JSON
 app.use(express.json());
 
-// Porta: obrigatório usar a variável de ambiente do Render
+// ✅ PORTA DO RENDER: Usa a variável de ambiente
 const PORT = process.env.PORT || 10000;
 
-// 🔥 ROTA DE TESTE
+// 🔥 ROTA DE TESTE (funciona)
 app.get('/teste', (req, res) => {
   res.json({ mensagem: 'Backend funcionando!' });
 });
@@ -16,12 +16,12 @@ app.get('/teste', (req, res) => {
 app.get('/api/usuarios', (req, res) => {
   console.log('✅ Rota /api/usuarios chamada com sucesso!');
   res.json([
-    { id: 1, nome: 'João Silva', email: 'joao@obras.com', tipo: 'engenheiro', ativo: true },
-    { id: 2, nome: 'Maria Santos', email: 'maria@obras.com', tipo: 'gestor', ativo: true }
+    { id: 1, nome: 'Admin', email: 'admin@obras.com', tipo: 'admin' },
+    { id: 2, nome: 'Engenheiro', email: 'eng@obras.com', tipo: 'engenheiro' }
   ]);
 });
 
-// ✅ POST para simular login
+// ✅ POST simples para login
 app.post('/api/login', (req, res) => {
   const { email, senha } = req.body;
   if (email && senha) {
@@ -35,6 +35,7 @@ app.post('/api/login', (req, res) => {
 // INICIALIZAÇÃO DO SERVIDOR
 // ====================
 
+// ✅ ESCUTA EM 0.0.0.0 E NA PORTA DO RENDER
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
   console.log('✅ Seu serviço está ativo e pronto para receber requisições!');
