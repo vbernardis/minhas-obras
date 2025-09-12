@@ -36,6 +36,7 @@ function App() {
 
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
 
+  // ✅ URL CORRIGIDA: sem espaços no final
   const BASE_URL = 'https://minhas-obras-backend.onrender.com';
 
   useEffect(() => {
