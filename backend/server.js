@@ -1,125 +1,75 @@
-// backend/server.js
-
 const express = require('express');
-const cors = require('cors');
-const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(cors());
+// Middleware
 app.use(express.json());
+
+// Porta para o Render
+const PORT = process.env.PORT || 10000;
 
 // Rota de teste
 app.get('/teste', (req, res) => {
   res.json({ mensagem: 'Servidor funcionando!' });
 });
 
-// Rota: Listar todos os usuários
-app.get('/api/usuarios', async (req, res) => {
-  try {
-    const usuarios = await prisma.usuario.findMany({
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        tipo: true,
-        ativo: true,
-        createdAt: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json(usuarios);
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao buscar usuários' });
-    console.error(erro);
-  }
-});
+// ====================
+// ROTAS PARA USUÁRIOS
+// ====================
 
-// Rota: Cadastro de usuário
 app.post('/api/usuarios', async (req, res) => {
   const { nome, email, senha } = req.body;
-
-  if (!nome || !email || !senha) {
-    return res.status(400).json({ erro: 'Preencha todos os campos' });
-  }
-
   try {
-    const usuarioExistente = await prisma.usuario.findUnique({ where: { email } });
-    if (usuarioExistente) {
-      return res.status(400).json({ erro: 'Este email já está cadastrado' });
-    }
-
-    const senhaHash = await bcrypt.hash(senha, 10);
     const usuario = await prisma.usuario.create({
-       {
-        nome,
-        email,
-        senha: senhaHash
-      }
+      data: { nome, email, senha }
     });
-
-    res.json({
-      id: usuario.id,
-      nome: usuario.nome,
-      email: usuario.email,
-      tipo: usuario.tipo,
-      mensagem: 'Usuário cadastrado com sucesso!'
-    });
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro no servidor' });
-    console.error(erro);
+    res.status(201).json(usuario);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao criar usuário' });
   }
 });
 
-// Rota: Login
 app.post('/api/login', async (req, res) => {
   const { email, senha } = req.body;
-
-  if (!email || !senha) {
-    return res.status(400).json({ erro: 'Preencha email e senha' });
-  }
-
   try {
-    const usuario = await prisma.usuario.findUnique({ where: { email } });
-    if (!usuario) return res.status(400).json({ erro: 'Email ou senha inválidos' });
-
-    const senhaValida = await bcrypt.compare(senha, usuario.senha);
-    if (!senhaValida) return res.status(400).json({ erro: 'Email ou senha inválidos' });
-
-    res.json({
-      id: usuario.id,
-      nome: usuario.nome,
-      email: usuario.email,
-      tipo: usuario.tipo,
-      mensagem: `Bem-vindo(a), ${usuario.nome}!`
+    const usuario = await prisma.usuario.findUnique({
+      where: { email }
     });
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro no servidor' });
-    console.error(erro);
+    if (!usuario || usuario.senha !== senha) {
+      return res.status(401).json({ erro: 'Credenciais inválidas' });
+    }
+    res.json(usuario);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao fazer login' });
   }
 });
 
-// Rota: Listar todas as obras
+app.get('/api/usuarios', async (req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany();
+    res.json(usuarios);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao carregar usuários' });
+  }
+});
+
+// ==================
+// ROTAS PARA OBRAS
+// ==================
+
 app.get('/api/obras', async (req, res) => {
   try {
-    const obras = await prisma.obra.findMany({ orderBy: { createdAt: 'desc' } });
+    const obras = await prisma.obra.findMany();
     res.json(obras);
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao buscar obras' });
-    console.error(erro);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao carregar obras' });
   }
 });
 
-// Rota: Cadastrar obra
 app.post('/api/obras', async (req, res) => {
   const { nome, endereco, proprietario, responsavel, status } = req.body;
-
-  if (!nome || !endereco) {
-    return res.status(400).json({ erro: 'Nome e endereço são obrigatórios' });
-  }
-
   try {
     const obra = await prisma.obra.create({
       data: {
@@ -127,116 +77,70 @@ app.post('/api/obras', async (req, res) => {
         endereco,
         proprietario,
         responsavel,
-        status: status || 'planejamento'
+        status
       }
     });
-    res.json(obra);
-  } catch (erro) {
+    res.status(201).json(obra);
+  } catch (error) {
     res.status(500).json({ erro: 'Erro ao cadastrar obra' });
-    console.error(erro);
   }
 });
 
-// Rota: Listar orçamentos
+// ========================
+// ROTAS PARA ORÇAMENTOS
+// ========================
+
 app.get('/api/orcamentos', async (req, res) => {
   try {
-    const orcamentos = await prisma.orcamento.findMany({
-      include: {
-        obra: true,
-        locais: {
-          include: {
-            etapas: {
-              include: {
-                subEtapas: {
-                  include: {
-                    servicos: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-    res.json(orcamentos);
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao buscar orçamentos' });
+    const orcamentos = await prisma.orcamento.findMany();
+    // Converte os campos JSON string de volta para objetos
+    const orcamentosParseados = orcamentos.map(o => ({
+      ...o,
+      locais: typeof o.locais === 'string' ? JSON.parse(o.locais) : o.locais
+    }));
+    res.json(orcamentosParseados);
+  } catch (error) {
+    console.error('Erro ao carregar orçamentos:', error);
+    res.status(500).json({ erro: 'Erro ao carregar orçamentos' });
   }
 });
 
-// Rota: Cadastrar orçamento
 app.post('/api/orcamentos', async (req, res) => {
-  const { obraId, nome, locais } = req.body;
-
-  if (!obraId || !nome || !locais || locais.length === 0) {
-    return res.status(400).json({ erro: 'Preencha todos os dados' });
-  }
+  const { obraId, nome, locais, bdiMaterialGlobal, bdiMaoDeObraGlobal, admObras } = req.body;
 
   try {
     const orcamento = await prisma.orcamento.create({
-       {
+      data: {
+        obraId: parseInt(obraId),
         nome,
-        obraId,
-        locais: {
-          create: locais.map(local => ({
-            nome: local.nome,
-            etapas: {
-              create: local.etapas.map(etapa => ({
-                nome: etapa.nome,
-                subEtapas: {
-                  create: etapa.subEtapas.map(subEtapa => ({
-                    nome: subEtapa.nome,
-                    servicos: {
-                      create: subEtapa.servicos.map(servico => ({
-                        descricao: servico.descricao,
-                        unidade: servico.unidade,
-                        quantidade: servico.quantidade,
-                        valorUnitarioMaterial: servico.valorUnitarioMaterial,
-                        valorUnitarioMaoDeObra: servico.valorUnitarioMaoDeObra,
-                        bdiMaterial: servico.bdiMaterial || 40,
-                        bdiMaoDeObra: servico.bdiMaoDeObra || 80,
-                        valorTotal: calcularValorTotal(servico)
-                      }))
-                    }
-                  }))
-                }
-              }))
-            }
-          }))
-        }
-      },
-      include: {
-        locais: {
-          include: {
-            etapas: {
-              include: {
-                subEtapas: {
-                  include: {
-                    servicos: true
-                  }
-                }
-              }
-            }
-          }
-        }
+        bdiMaterialGlobal: parseFloat(bdiMaterialGlobal) || 40,
+        bdiMaoDeObraGlobal: parseFloat(bdiMaoDeObraGlobal) || 80,
+        admObras: parseFloat(admObras) || 15,
+        locais: JSON.stringify(locais) // Salva como string JSON
       }
     });
-    res.json(orcamento);
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao cadastrar orçamento' });
-    console.error(erro);
+    res.status(201).json(orcamento);
+  } catch (error) {
+    console.error('Erro ao salvar orçamento:', error);
+    res.status(500).json({ erro: 'Erro ao salvar orçamento' });
   }
 });
 
-// Função auxiliar para calcular valor total
-function calcularValorTotal(servico) {
-  const totalMaterial = servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100);
-  const totalMaoDeObra = servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100);
-  return totalMaterial + totalMaoDeObra;
+// ====================
+// INICIALIZAÇÃO
+// ====================
+
+async function main() {
+  await prisma.$connect;
+  console.log('Conectado ao banco de dados com sucesso!');
 }
 
-// Inicia o servidor
-const PORT = process.env.PORT || 3001;
+main().catch((e) => {
+  console.error('Erro ao conectar ao banco:', e);
+  process.exit(1);
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log('==> Seu serviço está ativo 🎉');
 });
