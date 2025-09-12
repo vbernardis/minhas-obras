@@ -1,79 +1,15 @@
-// prisma/schema.prisma
-
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
 }
 
+generator client {
+  provider = "prisma-client-js"
+}
+
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  email     String   @unique
-  senha     String
-  tipo      String   @default("usuario")
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
-
-model Obra {
-  id             Int      @id @default(autoincrement())
-  nome           String
-  endereco       String
-  proprietario   String?
-  responsavel    String?
-  status         String   @default("planejamento")
-  createdAt      DateTime @default(now())
-}
-
-model Orcamento {
-  id        Int        @id @default(autoincrement())
-  nome      String
-  obraId    Int
-  obra      Obra       @relation(fields: [obraId], references: [id])
-  locais    Local[]
-  createdAt DateTime   @default(now())
-}
-
-model Local {
-  id          Int           @id @default(autoincrement())
-  nome        String
-  orcamentoId Int
-  orcamento   Orcamento     @relation(fields: [orcamentoId], references: [id])
-  etapas      Etapa[]
-}
-
-model Etapa {
-  id          Int           @id @default(autoincrement())
-  nome        String
-  localId     Int
-  local       Local         @relation(fields: [localId], references: [id])
-  subEtapas   SubEtapa[]
-}
-
-model SubEtapa {
-  id          Int           @id @default(autoincrement())
-  nome        String
-  etapaId     Int
-  etapa       Etapa         @relation(fields: [etapaId], references: [id])
-  servicos    Servico[]
-}
-
-model Servico {
-  id                         Int       @id @default(autoincrement())
-  codigo                     String
-  descricao                  String
-  unidade                    String
-  quantidade                 Float
-  valorUnitarioMaterial      Float
-  valorUnitarioMaoDeObra     Float
-  bdiMaterial                Float     @default(40.0)
-  bdiMaoDeObra               Float     @default(80.0)
-  valorTotal                 Float     @default(0.0)
-  subEtapaId                 Int
-  subEtapa                   SubEtapa  @relation(fields: [subEtapaId], references: [id])
-  createdAt                  DateTime  @default(now())
+  id    Int     @id @default(autoincrement())
+  nome  String
+  email String  @unique
+  senha String
 }
