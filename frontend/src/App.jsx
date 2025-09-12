@@ -56,11 +56,9 @@ function App() {
       if (resposta.ok) {
         const dados = await resposta.json();
         setObras(dados);
-      } else {
-        console.error('Erro ao carregar obras:', resposta.status);
       }
     } catch (erro) {
-      console.error('Erro de conexão com obras:', erro);
+      console.error('Erro ao carregar obras:', erro);
     }
   };
 
@@ -70,11 +68,9 @@ function App() {
       if (resposta.ok) {
         const dados = await resposta.json();
         setUsuarios(dados);
-      } else {
-        console.error('Erro ao carregar usuários:', resposta.status);
       }
     } catch (erro) {
-      console.error('Erro de conexão com usuários:', erro);
+      console.error('Erro ao carregar usuários:', erro);
     }
   };
 
@@ -84,11 +80,9 @@ function App() {
       if (resposta.ok) {
         const dados = await resposta.json();
         setOrcamentos(dados);
-      } else {
-        console.error('Erro ao carregar orçamentos:', resposta.status);
       }
     } catch (erro) {
-      console.error('Erro de conexão com orçamentos:', erro);
+      console.error('Erro ao carregar orçamentos:', erro);
     }
   };
 
@@ -115,12 +109,9 @@ function App() {
         setProprietarioObra('');
         setResponsavelObra('');
         setStatusObra('planejamento');
-      } else {
-        alert('Erro ao cadastrar obra');
       }
     } catch (erro) {
-      console.error('Erro ao salvar obra:', erro);
-      alert('Erro de conexão');
+      alert('Erro ao cadastrar obra');
     }
   };
 
@@ -617,115 +608,3 @@ function App() {
                                 onChange={(e) => atualizarItem(item.id, 'codigo', e.target.value)}
                                 style={{ width: '100%', padding: '4px', fontSize: '12px' }}
                                 readOnly={item.nivel !== 'servico'}
-                              />
-                            </td>
-                            <td style={{ padding: '4px' }}>
-                              <input
-                                type="text"
-                                value={item.descricao}
-                                onChange={(e) => atualizarItem(item.id, 'descricao', e.target.value)}
-                                style={{ width: '100%', padding: '4px', fontSize: '12px' }}
-                              />
-                            </td>
-                            {item.nivel === 'servico' ? (
-                              <>
-                                <td style={{ padding: '4px' }}>
-                                  <input
-                                    type="text"
-                                    value={item.unidade}
-                                    onChange={(e) => atualizarItem(item.id, 'unidade', e.target.value)}
-                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
-                                  />
-                                </td>
-                                <td style={{ padding: '4px' }}>
-                                  <input
-                                    type="number"
-                                    value={item.quantidade}
-                                    onChange={(e) => atualizarItem(item.id, 'quantidade', parseFloat(e.target.value) || 0)}
-                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
-                                  />
-                                </td>
-                                <td style={{ padding: '4px' }}>
-                                  <input
-                                    type="number"
-                                    value={item.valorUnitarioMaterial}
-                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaterial', parseFloat(e.target.value) || 0)}
-                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
-                                  />
-                                </td>
-                                <td style={{ padding: '4px' }}>
-                                  <input
-                                    type="number"
-                                    value={item.valorUnitarioMaoDeObra}
-                                    onChange={(e) => atualizarItem(item.id, 'valorUnitarioMaoDeObra', parseFloat(e.target.value) || 0)}
-                                    style={{ width: '100%', padding: '4px', fontSize: '12px' }}
-                                  />
-                                </td>
-                                <td style={{ padding: '4px', fontWeight: 'bold', color: '#27ae60' }}>
-                                  R$ {calcularTotalItem(item).toFixed(2)}
-                                </td>
-                              </>
-                            ) : (
-                              <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold', color: '#2c3e50', padding: '4px' }}>
-                                Total: R$ {item.total.toFixed(2)}
-                              </td>
-                            )}
-                            <td style={{ padding: '4px' }}>
-                              <button
-                                type="button"
-                                onClick={() => removerItem(item.id)}
-                                style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '2px 4px', fontSize: '12px', cursor: 'pointer' }}
-                              >
-                                X
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                    <div style={{ fontSize: '14px' }}>
-                      <label>ADM de Obras (%): </label>
-                      <input
-                        type="number"
-                        value={admObras}
-                        onChange={(e) => setAdmObras(parseFloat(e.target.value) || 0)}
-                        style={{ width: '70px', padding: '4px' }}
-                      />%
-                    </div>
-                    <div style={{ textAlign: 'right', fontSize: '14px' }}>
-                      <div>Subtotal: R$ {calcularSubtotal().toFixed(2)}</div>
-                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
-                        Total Final: R$ {calcularTotalFinal().toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    style={{
-                      marginTop: '15px',
-                      padding: '10px 20px',
-                      backgroundColor: '#27ae60',
-                      color: 'white',
-                      border: 'none',
-                      fontWeight: 'bold',
-                      fontSize: '16px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cadastrar Orçamento
-                  </button>
-                </form>
-              </div>
-            )}
-          </main>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default App;
