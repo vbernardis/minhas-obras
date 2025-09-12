@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(express.json());
 
-// Porta: usa 10000 (padrão do Render) ou PORT
+// Porta: Render usa PORT (padrão 10000)
 const PORT = process.env.PORT || 10000;
 
 // Rota de teste
@@ -21,7 +21,9 @@ app.get('/teste', (req, res) => {
 
 app.get('/api/usuarios', async (req, res) => {
   try {
-    const usuarios = await prisma.usuario.findMany();
+    const usuarios = await prisma.usuario.findMany({
+      orderBy: { id: 'asc' }
+    });
     res.json(usuarios);
   } catch (error) {
     console.error('Erro ao carregar usuários:', error);
@@ -33,7 +35,13 @@ app.post('/api/usuarios', async (req, res) => {
   const { nome, email, senha } = req.body;
   try {
     const usuario = await prisma.usuario.create({
-      data: { nome, email, senha, tipo: 'usuario', ativo: true }
+       {
+        nome,
+        email,
+        senha,
+        tipo: 'usuario',
+        ativo: true
+      }
     });
     res.status(201).json(usuario);
   } catch (error) {
@@ -68,7 +76,9 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/obras', async (req, res) => {
   try {
-    const obras = await prisma.obra.findMany();
+    const obras = await prisma.obra.findMany({
+      orderBy: { id: 'asc' }
+    });
     res.json(obras);
   } catch (error) {
     console.error('Erro ao carregar obras:', error);
@@ -80,7 +90,7 @@ app.post('/api/obras', async (req, res) => {
   const { nome, endereco, proprietario, responsavel, status } = req.body;
   try {
     const obra = await prisma.obra.create({
-      data: {
+       {
         nome,
         endereco,
         proprietario: proprietario || '',
@@ -99,44 +109,108 @@ app.post('/api/obras', async (req, res) => {
 // ROTAS PARA ORÇAMENTOS
 // ========================
 
+// Listar todos os orçamentos com hierarquia completa
 app.get('/api/orcamentos', async (req, res) => {
   try {
     const orcamentos = await prisma.orcamento.findMany({
-      include: { obra: true }
+      include: {
+        obra: true,
+        locais: {
+          include: {
+            etapas: {
+              include: {
+                subEtapas: {
+                  include: {
+                    servicos: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: { id: 'asc' }
     });
-    // Converte locais de string para objeto JSON
-    const orcamentosParseados = orcamentos.map(o => ({
-      ...o,
-      locais: typeof o.locais === 'string' ? JSON.parse(o.locais) : o.locais,
-      bdiMaterialGlobal: parseFloat(o.bdiMaterialGlobal),
-      bdiMaoDeObraGlobal: parseFloat(o.bdiMaoDeObraGlobal),
-      admObras: parseFloat(o.admObras)
-    }));
-    res.json(orcamentosParseados);
+    res.json(orcamentos);
   } catch (error) {
     console.error('Erro ao carregar orçamentos:', error);
     res.status(500).json({ erro: 'Erro ao carregar orçamentos' });
   }
 });
 
+// Criar um novo orçamento com toda a hierarquia
 app.post('/api/orcamentos', async (req, res) => {
-  const { obraId, nome, locais, bdiMaterialGlobal, bdiMaoDeObraGlobal, admObras } = req.body;
+  const { obraId, nome, locais } = req.body;
 
   if (!obraId || !nome) {
-    return res.status(400).json({ erro: 'Campos obrigatórios ausentes' });
+    return res.status(400).json({ erro: 'Campos obrigatórios ausentes: obraId e nome' });
   }
 
   try {
-    const orcamento = await prisma.orcamento.create({
-      data: {
-        obraId: parseInt(obraId),
-        nome,
-        bdiMaterialGlobal: parseFloat(bdiMaterialGlobal) || 40,
-        bdiMaoDeObraGlobal: parseFloat(bdiMaoDeObraGlobal) || 80,
-        admObras: parseFloat(admObras) || 15,
-        locais: JSON.stringify(locais)
+    // Inicia transação para garantir consistência
+    const orcamento = await prisma.$transaction(async (prisma) => {
+      // Cria o orçamento principal
+      const novoOrcamento = await prisma.orcamento.create({
+         {
+          nome,
+          obraId: parseInt(obraId)
+        }
+      });
+
+      // Para cada Local
+      for (const local of locais) {
+        const novoLocal = await prisma.local.create({
+           {
+            nome: local.descricao || 'Local',
+            orcamentoId: novoOrcamento.id
+          }
+        });
+
+        // Para cada Etapa
+        for (const etapa of local.etapas || []) {
+          const novaEtapa = await prisma.etapa.create({
+             {
+              nome: etapa.descricao || 'Etapa',
+              localId: novoLocal.id
+            }
+          });
+
+          // Para cada SubEtapa
+          for (const subEtapa of etapa.subEtapas || []) {
+            const novaSubEtapa = await prisma.subEtapa.create({
+               {
+                nome: subEtapa.descricao || 'Sub Etapa',
+                etapaId: novaEtapa.id
+              }
+            });
+
+            // Para cada Serviço
+            for (const servico of subEtapa.servicos || []) {
+              const totalMat = servico.quantidade * servico.valorUnitarioMaterial * (1 + (servico.bdiMaterial || 40) / 100);
+              const totalMO = servico.quantidade * servico.valorUnitarioMaoDeObra * (1 + (servico.bdiMaoDeObra || 80) / 100);
+              const valorTotal = totalMat + totalMO;
+
+              await prisma.servico.create({
+                 {
+                  descricao: servico.descricao || 'Serviço',
+                  unidade: servico.unidade || '',
+                  quantidade: parseFloat(servico.quantidade) || 0,
+                  valorUnitarioMaterial: parseFloat(servico.valorUnitarioMaterial) || 0,
+                  valorUnitarioMaoDeObra: parseFloat(servico.valorUnitarioMaoDeObra) || 0,
+                  bdiMaterial: parseFloat(servico.bdiMaterial) || 40,
+                  bdiMaoDeObra: parseFloat(servico.bdiMaoDeObra) || 80,
+                  valorTotal,
+                  subEtapaId: novaSubEtapa.id
+                }
+              });
+            }
+          }
+        }
       }
+
+      return novoOrcamento;
     });
+
     res.status(201).json(orcamento);
   } catch (error) {
     console.error('Erro ao salvar orçamento:', error);
