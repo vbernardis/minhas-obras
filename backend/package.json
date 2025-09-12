@@ -4,15 +4,10 @@
   "description": "API para gestão de obras",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "postinstall": "npx prisma generate"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "@prisma/client": "^5.17.0"
-  },
-  "devDependencies": {
-    "prisma": "^5.17.0"
+    "express": "^4.18.2"
   },
   "engines": {
     "node": "22.x"
