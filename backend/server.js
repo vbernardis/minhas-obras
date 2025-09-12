@@ -1,42 +1,29 @@
 const express = require('express');
-const app = express();
+const { PrismaClient } = require('@prisma/client');
 
-// Middleware para parsear JSON
+const app = express();
+const prisma = new PrismaClient();
+
+// Middleware
 app.use(express.json());
 
-// ✅ PORTA DO RENDER: Usa a variável de ambiente
+// Porta do Render
 const PORT = process.env.PORT || 10000;
 
-// 🔥 ROTA DE TESTE (funciona)
+// Rota de teste
 app.get('/teste', (req, res) => {
   res.json({ mensagem: 'Backend funcionando!' });
 });
 
-// ✅ ROTA SIMPLIFICADA PARA USUÁRIOS (sem banco)
+// Rota simulada de usuários (sem banco)
 app.get('/api/usuarios', (req, res) => {
-  console.log('✅ Rota /api/usuarios chamada com sucesso!');
+  console.log('✅ /api/usuarios chamado!');
   res.json([
-    { id: 1, nome: 'Admin', email: 'admin@obras.com', tipo: 'admin' },
-    { id: 2, nome: 'Engenheiro', email: 'eng@obras.com', tipo: 'engenheiro' }
+    { id: 1, nome: 'Admin', email: 'admin@obras.com' }
   ]);
 });
 
-// ✅ POST simples para login
-app.post('/api/login', (req, res) => {
-  const { email, senha } = req.body;
-  if (email && senha) {
-    res.json({ id: 1, nome: 'Usuário Teste', email });
-  } else {
-    res.status(401).json({ erro: 'Credenciais inválidas' });
-  }
-});
-
-// ====================
-// INICIALIZAÇÃO DO SERVIDOR
-// ====================
-
-// ✅ ESCUTA EM 0.0.0.0 E NA PORTA DO RENDER
+// Inicializa o servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
-  console.log('✅ Seu serviço está ativo e pronto para receber requisições!');
+  console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
 });
