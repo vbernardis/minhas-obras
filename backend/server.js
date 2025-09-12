@@ -10,7 +10,7 @@ app.use(express.json());
 // Porta do Render
 const PORT = process.env.PORT || 10000;
 
-// 🔥 ROTA DE TESTE
+// Rota de teste
 app.get('/teste', (req, res) => {
   res.json({ mensagem: 'Backend funcionando!' });
 });
@@ -26,8 +26,8 @@ app.get('/api/usuarios', async (req, res) => {
     });
     res.json(usuarios);
   } catch (error) {
-    console.error('Erro ao carregar usuários:', error);
-    res.status(500).json({ erro: 'Erro ao carregar usuários' });
+    console.error('Erro ao carregar usuarios:', error);
+    res.status(500).json({ erro: 'Erro ao carregar usuarios' });
   }
 });
 
@@ -39,7 +39,7 @@ app.post('/api/usuarios', async (req, res) => {
     });
     res.status(201).json(usuario);
   } catch (error) {
-    res.status(500).json({ erro: 'Erro ao criar usuário' });
+    res.status(500).json({ erro: 'Erro ao criar usuario' });
   }
 });
 
@@ -48,7 +48,7 @@ app.post('/api/login', async (req, res) => {
   try {
     const usuario = await prisma.usuario.findUnique({ where: { email } });
     if (!usuario || usuario.senha !== senha) {
-      return res.status(401).json({ erro: 'Credenciais inválidas' });
+      return res.status(401).json({ erro: 'Credenciais invalidas' });
     }
     res.json({
       id: usuario.id,
@@ -95,7 +95,7 @@ app.post('/api/obras', async (req, res) => {
 });
 
 // ========================
-// ROTAS PARA ORÇAMENTOS
+// ROTAS PARA ORCAMENTOS
 // ========================
 
 app.get('/api/orcamentos', async (req, res) => {
@@ -120,8 +120,8 @@ app.get('/api/orcamentos', async (req, res) => {
     });
     res.json(orcamentos);
   } catch (error) {
-    console.error('Erro ao carregar orçamentos:', error);
-    res.status(500).json({ erro: 'Erro ao carregar orçamentos' });
+    console.error('Erro ao carregar orcamentos:', error);
+    res.status(500).json({ erro: 'Erro ao carregar orcamentos' });
   }
 });
 
@@ -129,7 +129,7 @@ app.post('/api/orcamentos', async (req, res) => {
   const { obraId, nome, bdiMaterialGlobal, bdiMaoDeObraGlobal, admObras, locais } = req.body;
 
   if (!obraId || !nome || !locais) {
-    return res.status(400).json({ erro: 'Campos obrigatórios ausentes' });
+    return res.status(400).json({ erro: 'Campos obrigatorios ausentes' });
   }
 
   try {
@@ -165,7 +165,7 @@ app.post('/api/orcamentos', async (req, res) => {
 
               await prisma.servico.create({
                  {
-                  descricao: servico.descricao || 'Serviço',
+                  descricao: servico.descricao || 'Servico',
                   unidade: servico.unidade || '',
                   quantidade: parseFloat(servico.quantidade) || 0,
                   valorUnitarioMaterial: parseFloat(servico.valorUnitarioMaterial) || 0,
@@ -186,8 +186,8 @@ app.post('/api/orcamentos', async (req, res) => {
 
     res.status(201).json(orcamento);
   } catch (error) {
-    console.error('Erro ao salvar orçamento:', error);
-    res.status(500).json({ erro: 'Erro ao salvar orçamento' });
+    console.error('Erro ao salvar orcamento:', error);
+    res.status(500).json({ erro: 'Erro ao salvar orcamento' });
   }
 });
 
