@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(express.json());
 
-// Porta: obrigatório usar PORT no Render
+// Porta: obrigatório usar PORT do ambiente
 const PORT = process.env.PORT || 10000;
 
 // Rota de teste
@@ -199,7 +199,7 @@ async function startServer() {
     process.exit(1);
   }
 
-  // Escuta em 0.0.0.0 e na porta fornecida pelo Render
+  // ✅ Escuta em 0.0.0.0 e na porta fornecida pelo Render
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
     console.log('==> Seu serviço está ativo 🎉');
